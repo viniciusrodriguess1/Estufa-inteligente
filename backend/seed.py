@@ -32,8 +32,8 @@ def seed_db():
 
         # 2. Criar Estufa
         estufa = Estufa(
-            nome="Estufa AgroTech Alpha",
-            localizacao="Campus Central - Laboratório de Botânica",
+            nome="Estufa Inteligente",
+            localizacao="Laboratorio Evante",
             descricao="Estufa automatizada experimental integrando sensores ambientais e robótica biomimética para monitoramento e controle de plantio inteligente."
         )
         session.add(estufa)
