@@ -1,3 +1,4 @@
+import os
 import time
 import random
 import json
@@ -5,7 +6,7 @@ import urllib.request
 import urllib.error
 import math
 
-API_URL = "http://127.0.0.1:8000/api"
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000/api")
 
 def make_post_request(endpoint, data):
     url = f"{API_URL}/{endpoint}"
