@@ -435,6 +435,15 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         .login-footer p:first-of-type {
           margin-bottom: 0.25rem;
         }
+
+        @media (max-width: 480px) {
+          .login-card {
+            padding: 1.75rem 1.5rem;
+          }
+          .login-header h2 {
+            font-size: 1.35rem;
+          }
+        }
       `}</style>
     </div>
   );

@@ -19,6 +19,8 @@ interface SidebarProps {
   onLogout: () => void;
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
+  isOpenOnMobile?: boolean;
+  setIsOpenOnMobile?: (open: boolean) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ 
@@ -27,7 +29,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   user, 
   onLogout,
   isCollapsed,
-  setIsCollapsed
+  setIsCollapsed,
+  isOpenOnMobile,
+  setIsOpenOnMobile
 }) => {
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -39,7 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   return (
-    <aside className={`sidebar ${isCollapsed ? "collapsed" : ""}`}>
+    <aside className={`sidebar ${isCollapsed ? "collapsed" : ""} ${isOpenOnMobile ? "open" : ""}`}>
       <div className="sidebar-brand">
         <Flower2 size={28} className="brand-icon" />
         {!isCollapsed && (
@@ -65,7 +69,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             return (
               <li key={item.id}>
                 <button
-                  onClick={() => setCurrentPage(item.id)}
+                  onClick={() => {
+                    setCurrentPage(item.id);
+                    if (setIsOpenOnMobile) {
+                      setIsOpenOnMobile(false);
+                    }
+                  }}
                   className={`nav-link ${isActive ? "active" : ""}`}
                   title={isCollapsed ? item.label : ""}
                 >
@@ -81,7 +90,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {user && (
         <div 
           className={`sidebar-user ${currentPage === "perfil" ? "active" : ""}`}
-          onClick={() => setCurrentPage("perfil")}
+          onClick={() => {
+            setCurrentPage("perfil");
+            if (setIsOpenOnMobile) {
+              setIsOpenOnMobile(false);
+            }
+          }}
           title={isCollapsed ? "Ver Meu Perfil" : ""}
         >
           <div className="user-info">
@@ -348,6 +362,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         @media (max-width: 992px) {
           .sidebar {
             transform: translateX(-100%);
+          }
+          .sidebar.open {
+            transform: translateX(0);
+            width: 260px !important;
+          }
+          .collapse-toggle-btn {
+            display: none !important;
           }
         }
       `}</style>

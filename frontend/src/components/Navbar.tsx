@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Bell, Wifi, WifiOff, AlertTriangle, CheckCircle } from "lucide-react";
+import { Bell, Wifi, WifiOff, AlertTriangle, CheckCircle, Menu } from "lucide-react";
 
 interface NavbarProps {
   title: string;
@@ -7,6 +7,7 @@ interface NavbarProps {
   wsConnected: boolean;
   alerts: any[];
   clearAlerts: () => void;
+  onToggleMobileSidebar: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -14,12 +15,16 @@ export const Navbar: React.FC<NavbarProps> = ({
   subtitle,
   wsConnected,
   alerts,
-  clearAlerts
+  clearAlerts,
+  onToggleMobileSidebar
 }) => {
   const [showNotifications, setShowNotifications] = useState(false);
 
   return (
     <header className="navbar glass-card">
+      <button className="mobile-menu-btn" onClick={onToggleMobileSidebar} title="Menu">
+        <Menu size={24} />
+      </button>
       <div className="navbar-title-section">
         <h1 className="navbar-title">{title}</h1>
         <span className="navbar-subtitle">{subtitle}</span>
@@ -309,6 +314,63 @@ export const Navbar: React.FC<NavbarProps> = ({
         @keyframes slideDown {
           from { opacity: 0; transform: translateY(-5px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+
+        .mobile-menu-btn {
+          display: none;
+          background: transparent;
+          border: none;
+          color: var(--text-main);
+          cursor: pointer;
+          padding: 0.5rem;
+          margin-right: 0.5rem;
+          border-radius: var(--radius-sm);
+          align-items: center;
+          justify-content: center;
+          transition: var(--transition);
+        }
+
+        .mobile-menu-btn:hover {
+          background: #f1f5f9;
+          color: var(--primary);
+        }
+
+        @media (max-width: 992px) {
+          .navbar {
+            padding: 1rem 1.2rem;
+          }
+          .mobile-menu-btn {
+            display: flex;
+          }
+          .navbar-title {
+            font-size: 1.15rem;
+          }
+          .navbar-subtitle {
+            font-size: 0.75rem;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+        }
+
+        @media (max-width: 576px) {
+          .navbar {
+            padding: 0.8rem 1rem;
+          }
+          .status-indicator span {
+            display: none;
+          }
+          .status-indicator {
+            padding: 0.4rem;
+          }
+          .navbar-subtitle {
+            display: none;
+          }
+          .notifications-dropdown {
+            width: 280px;
+            right: -60px;
+          }
         }
       `}</style>
     </header>

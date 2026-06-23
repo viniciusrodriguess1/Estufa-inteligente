@@ -47,6 +47,7 @@ function App() {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [wsConnected, setWsConnected] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const socketRef = useRef<WebSocket | null>(null);
 
@@ -216,6 +217,14 @@ function App() {
 
   return (
     <div className={`app-container ${isSidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+      {/* Overlay para fechar a sidebar no mobile */}
+      {isMobileSidebarOpen && (
+        <div 
+          className="sidebar-overlay active" 
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar Navegação */}
       <Sidebar 
         currentPage={currentPage} 
@@ -224,6 +233,8 @@ function App() {
         onLogout={handleLogout} 
         isCollapsed={isSidebarCollapsed}
         setIsCollapsed={setIsSidebarCollapsed}
+        isOpenOnMobile={isMobileSidebarOpen}
+        setIsOpenOnMobile={setIsMobileSidebarOpen}
       />
 
       {/* Área Principal de Conteúdo */}
@@ -234,6 +245,7 @@ function App() {
           wsConnected={wsConnected} 
           alerts={alerts} 
           clearAlerts={clearAlerts} 
+          onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
         />
         
         {/* Renderizador de Páginas */}

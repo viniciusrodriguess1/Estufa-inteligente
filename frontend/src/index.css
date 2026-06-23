@@ -83,9 +83,30 @@ button, input, select, textarea {
 @media (max-width: 992px) {
   .main-content {
     margin-left: 0;
-    padding: 1.5rem;
-    padding-top: 5.5rem; /* Space for mobile nav */
+    padding: 1.25rem;
+    padding-top: 1.25rem;
   }
+}
+
+/* Sidebar backdrop overlay for mobile */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(10, 31, 17, 0.4); /* Colored blur matching sidebar theme */
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 98; /* Under sidebar (100) but above everything else */
+  opacity: 0;
+  visibility: hidden;
+  transition: var(--transition);
+}
+
+.sidebar-overlay.active {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Scrollbar Styles */
