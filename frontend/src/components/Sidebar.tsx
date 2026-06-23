@@ -42,16 +42,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: "configuracoes", label: "Configurações", icon: Settings },
   ];
 
+  const handleBrandClick = () => {
+    const confirmSair = window.confirm("Deseja realmente sair da sua conta e voltar para a página inicial?");
+    if (confirmSair) {
+      onLogout();
+    }
+  };
+
   return (
     <aside className={`sidebar ${isCollapsed ? "collapsed" : ""} ${isOpenOnMobile ? "open" : ""}`}>
       <div className="sidebar-brand">
-        <Flower2 size={28} className="brand-icon" />
-        {!isCollapsed && (
-          <div className="brand-text">
-            <h2>Estufa</h2>
-            <span>Inteligente</span>
-          </div>
-        )}
+        <div 
+          className="brand-logo-clickable" 
+          onClick={handleBrandClick}
+          title="Sair e voltar para a página inicial"
+        >
+          <Flower2 size={28} className="brand-icon" />
+          {!isCollapsed && (
+            <div className="brand-text">
+              <h2>Estufa</h2>
+              <span>Inteligente</span>
+            </div>
+          )}
+        </div>
         <button 
           onClick={() => setIsCollapsed(!isCollapsed)} 
           className="collapse-toggle-btn"
@@ -150,6 +163,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
           gap: 0.75rem;
           border-bottom: 1px solid rgba(255, 255, 255, 0.04);
           position: relative;
+        }
+
+        .brand-logo-clickable {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          cursor: pointer;
+          transition: var(--transition);
+        }
+
+        .brand-logo-clickable:hover {
+          opacity: 0.85;
+          transform: scale(1.02);
+        }
+
+        .sidebar.collapsed .brand-logo-clickable {
+          justify-content: center;
+          width: 100%;
         }
 
         .sidebar.collapsed .sidebar-brand {
