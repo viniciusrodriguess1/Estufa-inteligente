@@ -99,7 +99,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           <div className="login-logo">
             <Flower2 size={36} className="logo-icon" />
           </div>
-          <h2>{isRegister ? "Cadastro no AgroTech" : "Estufa Inteligente"}</h2>
+          <h2>{isRegister ? "Cadastro no Sistema" : "Estufa Inteligente"}</h2>
           <p>Monitoramento IoT & Planta Biomimética</p>
         </div>
 

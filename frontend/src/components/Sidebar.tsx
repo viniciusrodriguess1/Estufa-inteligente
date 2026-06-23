@@ -48,8 +48,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <Flower2 size={28} className="brand-icon" />
         {!isCollapsed && (
           <div className="brand-text">
-            <h2>AgroTech</h2>
-            <span>IoT & Robótica</span>
+            <h2>Estufa</h2>
+            <span>Inteligente</span>
           </div>
         )}
         <button 

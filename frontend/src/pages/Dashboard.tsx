@@ -95,7 +95,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <div className="dashboard-welcome glass-card">
         <div className="welcome-text">
           <h2>Painel Geral de Controle</h2>
-          <p>{estufaInfo?.nome || "Estufa AgroTech"} &bull; {estufaInfo?.localizacao || "Laboratório"}</p>
+          <p>{estufaInfo?.nome || "Estufa Inteligente"} &bull; {estufaInfo?.localizacao || "Laboratório"}</p>
         </div>
         <div className="welcome-status">
           <span className={`badge ${estufaInfo?.status_operacional === "Online" ? "badge-success" : "badge-danger"}`}>

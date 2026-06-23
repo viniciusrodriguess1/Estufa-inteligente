@@ -39,7 +39,7 @@ export const Estufa: React.FC<EstufaProps> = ({ estufaInfo }) => {
               <Home className="ficha-icon" size={20} />
               <div className="ficha-details">
                 <span className="ficha-label">Nome da Estufa</span>
-                <span className="ficha-value">{estufaInfo?.nome || "Estufa AgroTech Alpha"}</span>
+                <span className="ficha-value">{estufaInfo?.nome || "Estufa Inteligente"}</span>
               </div>
             </div>
 
