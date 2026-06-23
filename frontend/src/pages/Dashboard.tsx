@@ -96,6 +96,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="welcome-text">
           <h2>Painel Geral de Controle</h2>
           <p>{estufaInfo?.nome || "Estufa Inteligente"} &bull; {estufaInfo?.localizacao || "Laboratório"}</p>
+          <p className="welcome-desc">Ambiente IoT experimental de apoio didático para demonstração de parâmetros de cultivo e simulação física de reações e crescimentos vegetais via ESP32.</p>
         </div>
         <div className="welcome-status">
           <span className={`badge ${estufaInfo?.status_operacional === "Online" ? "badge-success" : "badge-danger"}`}>
@@ -563,6 +564,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
           font-size: 0.7rem;
           opacity: 0.7;
           margin-top: 0.1rem;
+        }
+
+        .welcome-desc {
+          font-size: 0.85rem;
+          color: var(--text-muted);
+          margin-top: 0.4rem;
+          line-height: 1.5;
         }
 
         @keyframes spin {

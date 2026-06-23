@@ -248,6 +248,23 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
             </div>
           </div>
 
+          {/* Card Objetivos Didáticos */}
+          <div className="glass-card didatico-card">
+            <h3>Objetivo Didático & Pedagógico</h3>
+            <p className="section-desc">Simulação de fototropismo, crescimento e movimentos naturais via ESP32</p>
+            <div className="didatico-content">
+              <p>
+                O objetivo principal deste projeto é atuar como ferramenta de apoio pedagógico em aulas de biologia, seja no ensino médio, técnico ou universitário.
+              </p>
+              <p>
+                A planta robótica simula comportamentos biológicos que muitas vezes ocorrem de forma muito lenta ou imperceptível na natureza (como o crescimento vertical e o fototropismo direcional). 
+              </p>
+              <p>
+                Desta forma, os alunos conseguem correlacionar em tempo real os estímulos físicos da estufa (luminosidade, temperatura) com as reações visíveis de dobramento, alongamento e inclinação executadas pelos servomotores de forma suave e contínua.
+              </p>
+            </div>
+          </div>
+
           {/* LDR Readings Card */}
           <div className="glass-card ldr-card">
             <h3>Sensores de Luminosidade (LDRs da Planta)</h3>
@@ -640,6 +657,29 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
             flex-direction: column;
             gap: 1rem;
           }
+        }
+
+        .didatico-card {
+          padding: 1.5rem;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 253, 244, 0.8) 100%);
+          border-left: 4px solid var(--primary-light);
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .didatico-content {
+          font-size: 0.82rem;
+          line-height: 1.5;
+          color: var(--text-muted);
+          margin-top: 0.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .didatico-content strong {
+          color: var(--primary-dark);
         }
       `}</style>
     </div>

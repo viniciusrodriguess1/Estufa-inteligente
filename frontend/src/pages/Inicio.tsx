@@ -56,7 +56,7 @@ export const Inicio: React.FC<InicioProps> = ({ onNavigateToAuth }) => {
             O futuro da automação agrícola integrada ao <span>biomimetismo</span>
           </h1>
           <p className="hero-description animate-fade-in">
-            Monitore variáveis ecológicas cruciais em tempo real e interaja com uma planta robótica biomimética inteligente que reage aos estímulos ambientais e simula comportamentos naturais.
+            Monitore variáveis ambientais da estufa em tempo real e demonstre reações vegetais complexas de fototropismo e crescimento por meio de simulação mecânica biomimética avançada.
           </p>
           <div className="hero-buttons animate-fade-in">
             <button onClick={() => onNavigateToAuth("login")} className="btn btn-primary hero-btn-primary">
@@ -104,13 +104,13 @@ export const Inicio: React.FC<InicioProps> = ({ onNavigateToAuth }) => {
           <div className="sobre-grid">
             <div className="sobre-text">
               <p>
-                A <strong>Estufa Inteligente</strong> é uma plataforma experimental que integra sensores de internet das coisas (IoT), algoritmos de monitoramento e automação de cultivos ao conceito de robótica biomimética.
+                O presente projeto tem como objetivo o desenvolvimento de um sistema baseado no microcontrolador <strong>ESP32</strong> capaz de simular o comportamento de uma planta, incluindo aspectos como o fototropismo (orientação à luz), o crescimento vertical e movimentos suaves e contínuos que remetam a um comportamento natural.
               </p>
               <p>
-                Nosso ecossistema monitora constantemente o clima interno (temperatura, umidade e luminosidade) e os parâmetros vitais do solo, enviando esses dados via rede local em tempo real para tomada de decisões inteligentes.
+                O ecossistema realiza o monitoramento prático de parâmetros ambientais cruciais (como temperatura, umidade e luminosidade) coletados e processados localmente.
               </p>
               <p>
-                Paralelamente, o projeto conta com a <strong>Planta Robótica Biomimética</strong>, uma réplica robótica de planta (inspirada na <em>Mimosa pudica</em>) controlada por servomotores que realiza heliotropismo (segue a direção da luz solar) e reage às condições do solo (murchando se o solo secar), fechando o ciclo entre estimulação ambiental e robótica.
+                A plataforma foi desenhada para auxiliar em aulas de biologia em escolas ou universidades, permitindo ao professor tanto demonstrar na prática os dados de uma estufa quanto ilustrar reações vegetais difíceis de visualizar no tempo da aula convencional (como processos muito lentos, a exemplo do crescimento e dobramentos foliares gradativos).
               </p>
             </div>
             <div className="sobre-stats">
@@ -191,24 +191,24 @@ export const Inicio: React.FC<InicioProps> = ({ onNavigateToAuth }) => {
             <div className="objective-item glass-card">
               <div className="obj-number">01</div>
               <div className="obj-content">
-                <h4>Estudo de Microclimas Controlados</h4>
-                <p>Análise de comportamento térmico e de umidade do solo em estufas para otimização de plantio com redução de desperdício de água e nutrientes.</p>
+                <h4>Simulação de Movimentos Naturais</h4>
+                <p>Desenvolver um sistema reativo embarcado em ESP32 capaz de traduzir estímulos luminosos e térmicos em movimentos biológicos contínuos de fototropismo e alongamento mecânico.</p>
               </div>
             </div>
 
             <div className="objective-item glass-card">
               <div className="obj-number">02</div>
               <div className="obj-content">
-                <h4>Pesquisa de Biomimética Reativa</h4>
-                <p>Desenvolvimento e avaliação de protótipos mecânicos de bio-robótica capazes de emular o movimento e a sensibilidade física de vegetais.</p>
+                <h4>Ensino Prático de Biologia</h4>
+                <p>Auxiliar docentes em escolas e universidades na demonstração prática de conceitos ecológicos e de sensibilidade vegetal de forma altamente visual.</p>
               </div>
             </div>
 
             <div className="objective-item glass-card">
               <div className="obj-number">03</div>
               <div className="obj-content">
-                <h4>Plataforma Educacional e Prática</h4>
-                <p>Servir de referência prática para estudantes em estudos de sistemas embarcados, Internet das Coisas (IoT), frontends reativos e controle dinâmico.</p>
+                <h4>Aceleração Temporal Didática</h4>
+                <p>Evidenciar em tempo de aula fenômenos biológicos de escala temporal estendida (como o crescimento e reações de heliotropismo), facilitando a absorção do conteúdo pelos estudantes.</p>
               </div>
             </div>
           </div>
