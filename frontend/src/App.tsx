@@ -9,6 +9,7 @@ import { Historico } from "./pages/Historico";
 import { PlantaRobotica } from "./pages/PlantaRobotica";
 import { Configuracoes } from "./pages/Configuracoes";
 import { Perfil } from "./pages/Perfil";
+import { Inicio } from "./pages/Inicio";
 import { API_BASE_URL, WS_BASE_URL } from "./api";
 
 // Mapeamento de títulos das páginas
@@ -48,6 +49,7 @@ function App() {
   const [wsConnected, setWsConnected] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<"inicio" | "login" | "register">("inicio");
 
   const socketRef = useRef<WebSocket | null>(null);
 
@@ -65,6 +67,7 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem("user");
     setUser(null);
+    setAuthMode("inicio");
     if (socketRef.current) {
       socketRef.current.close();
     }
@@ -212,7 +215,19 @@ function App() {
   };
 
   if (!user) {
-    return <Login onLoginSuccess={handleLoginSuccess} />;
+    if (authMode === "inicio") {
+      return <Inicio onNavigateToAuth={(mode) => setAuthMode(mode)} />;
+    }
+    return (
+      <Login 
+        onLoginSuccess={(userData) => {
+          handleLoginSuccess(userData);
+          setAuthMode("inicio");
+        }} 
+        initialRegister={authMode === "register"}
+        onBackToInicio={() => setAuthMode("inicio")}
+      />
+    );
   }
 
   return (

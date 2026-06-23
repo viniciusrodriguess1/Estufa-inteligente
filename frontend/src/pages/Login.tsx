@@ -1,19 +1,29 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Flower2, Eye, EyeOff, Lock, User, AlertCircle } from "lucide-react";
 import { API_BASE_URL } from "../api";
 
 interface LoginProps {
   onLoginSuccess: (user: any) => void;
+  initialRegister?: boolean;
+  onBackToInicio?: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+export const Login: React.FC<LoginProps> = ({ 
+  onLoginSuccess,
+  initialRegister = false,
+  onBackToInicio
+}) => {
   const [emailOrMatricula, setEmailOrMatricula] = useState("");
   const [senha, setSenha] = useState("");
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [matricula, setMatricula] = useState("");
   
-  const [isRegister, setIsRegister] = useState(false);
+  const [isRegister, setIsRegister] = useState(initialRegister);
+
+  useEffect(() => {
+    setIsRegister(initialRegister);
+  }, [initialRegister]);
   const [showPassword, setShowPassword] = useState(false);
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -95,6 +105,16 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   return (
     <div className="login-wrapper">
       <div className="login-card glass-card">
+        {onBackToInicio && (
+          <button 
+            type="button" 
+            onClick={onBackToInicio} 
+            className="btn-back-home"
+            title="Voltar para a página inicial"
+          >
+            &larr; Voltar ao Início
+          </button>
+        )}
         <div className="login-header">
           <div className="login-logo">
             <Flower2 size={36} className="logo-icon" />
@@ -278,6 +298,26 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           justify-content: center;
           background: radial-gradient(circle at 10% 20%, #f0fdf4 0%, #e2e8f0 100%);
           padding: 2rem 1rem;
+        }
+
+        .btn-back-home {
+          background: transparent;
+          border: none;
+          color: var(--primary);
+          font-size: 0.85rem;
+          font-weight: 600;
+          cursor: pointer;
+          margin-bottom: 1.5rem;
+          align-self: flex-start;
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          transition: var(--transition);
+        }
+
+        .btn-back-home:hover {
+          color: var(--primary-dark);
+          transform: translateX(-2px);
         }
 
         .login-card {
