@@ -272,16 +272,12 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       <style>{`
         .login-wrapper {
           min-height: 100vh;
-          width: 100vw;
+          width: 100%;
           display: flex;
           align-items: center;
           justify-content: center;
           background: radial-gradient(circle at 10% 20%, #f0fdf4 0%, #e2e8f0 100%);
-          position: fixed;
-          left: 0;
-          top: 0;
-          z-index: 1000;
-          padding: 1.5rem;
+          padding: 2rem 1rem;
         }
 
         .login-card {

@@ -401,6 +401,32 @@ export const Historico: React.FC<HistoricoProps> = () => {
           }
         }
 
+        @media (max-width: 768px) {
+          .controls-row {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .filter-group {
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%;
+          }
+          .period-buttons {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            text-align: center;
+          }
+          .period-btn {
+            padding: 0.5rem 0.2rem;
+            font-size: 0.75rem;
+            text-align: center;
+          }
+          .btn-refresh {
+            width: 100%;
+          }
+        }
+
         .chart-card {
           padding: 1.5rem;
         }

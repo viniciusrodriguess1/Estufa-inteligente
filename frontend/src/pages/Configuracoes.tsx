@@ -494,6 +494,18 @@ export const Configuracoes: React.FC<ConfiguracoesProps> = ({ onRefreshAll }) =>
           margin-top: 1.25rem;
         }
 
+        @media (max-width: 768px) {
+          .sub-tab-menu {
+            flex-direction: row;
+            flex-wrap: wrap;
+          }
+          .sub-tab-btn {
+            width: calc(50% - 0.25rem);
+            font-size: 0.8rem;
+            padding: 0.65rem 0.75rem;
+          }
+        }
+
         .sub-tab-btn {
           width: 100%;
           display: flex;
@@ -562,6 +574,16 @@ export const Configuracoes: React.FC<ConfiguracoesProps> = ({ onRefreshAll }) =>
 
         .form-row .form-group {
           flex: 1;
+        }
+
+        @media (max-width: 576px) {
+          .form-row {
+            flex-direction: column;
+            gap: 1.25rem;
+          }
+          .form-card {
+            padding: 1.25rem;
+          }
         }
 
         .form-group {

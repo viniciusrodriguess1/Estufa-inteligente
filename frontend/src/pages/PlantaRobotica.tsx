@@ -579,6 +579,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
         .log-table-container {
           flex: 1;
           overflow-y: auto;
+          overflow-x: auto;
           max-height: 250px;
           border: 1px solid var(--border-color);
           border-radius: var(--radius-sm);
@@ -632,6 +633,13 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 576px) {
+          .metric-row {
+            flex-direction: column;
+            gap: 1rem;
+          }
         }
       `}</style>
     </div>
