@@ -1,0 +1,48 @@
+# Dependências do Node (Frontend)
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.tsbuildinfo
+
+# Ambientes Virtuais do Python (Backend)
+.venv/
+venv/
+ENV/
+env/
+python/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Arquivos compilados do Python e cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipydb/
+
+# Banco de Dados Local (Gerado dinamicamente no startup)
+backend/pibic.db
+backend/pibic.db-wal
+backend/pibic.db-shm
+*.db
+*.db-wal
+*.db-shm
+
+# Configurações de IDEs e Editores
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
