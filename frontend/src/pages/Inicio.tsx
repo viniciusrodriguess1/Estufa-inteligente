@@ -53,7 +53,7 @@ export const Inicio: React.FC<InicioProps> = ({ onNavigateToAuth }) => {
             <Leaf size={14} /> Tecnologia Sustentável & Robótica
           </div>
           <h1 className="hero-title animate-fade-in">
-            O futuro da automação agrícola integrada ao <span>biomimetismo</span>
+            Monitoramento inteligente de estufas integrado ao <span>biomimetismo</span>
           </h1>
           <p className="hero-description animate-fade-in">
             Monitore variáveis ambientais da estufa em tempo real e demonstre reações vegetais complexas de fototropismo e crescimento por meio de simulação mecânica biomimética avançada.
