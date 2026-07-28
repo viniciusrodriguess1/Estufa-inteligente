@@ -662,4 +662,65 @@ def limpar_leituras(db: Session = Depends(get_session)):
     db.commit()
     return {"status": "success", "mensagem": "Todas as leituras e movimentos foram apagados com sucesso!"}
 
+@app.get("/api/admin/tabelas-resumo", tags=["Administração"], summary="Visualizar resumo de todas as tabelas do banco de dados")
+def visualizar_resumo_tabelas(db: Session = Depends(get_session)):
+    estufas = db.exec(select(Estufa)).all()
+    micros = db.exec(select(Microcontrolador)).all()
+    sensores = db.exec(select(Sensor)).all()
+    plantas = db.exec(select(PlantaRobotica)).all()
+    leituras_recentes = db.exec(select(Leitura).order_by(Leitura.data_hora.desc()).limit(20)).all()
+    movimentos_recentes = db.exec(select(MovimentoPlanta).order_by(MovimentoPlanta.data_hora.desc()).limit(20)).all()
+    usuarios = db.exec(select(Usuario)).all()
+
+    return {
+        "estufas": estufas,
+        "microcontroladores": micros,
+        "sensores": sensores,
+        "plantas_roboticas": plantas,
+        "leituras_recentes (ultimas 20)": leituras_recentes,
+        "movimentos_recentes (ultimos 20)": movimentos_recentes,
+        "usuarios": [
+            {
+                "id_usuario": u.id_usuario,
+                "nome": u.nome,
+                "email": u.email,
+                "matricula": u.matricula,
+                "data_cadastro": u.data_cadastro
+            } for u in usuarios
+        ]
+    }
+
+@app.get("/api/admin/tabela/{nome_tabela}", tags=["Administração"], summary="Consultar conteúdo de uma tabela específica (opções: leituras, sensores, estufas, microcontroladores, plantas, movimentos, usuarios)")
+def consultar_tabela(nome_tabela: str, limit: int = 50, db: Session = Depends(get_session)):
+    nome = nome_tabela.lower().strip()
+    if nome == "leituras":
+        return db.exec(select(Leitura).order_by(Leitura.data_hora.desc()).limit(limit)).all()
+    elif nome == "sensores":
+        return db.exec(select(Sensor)).all()
+    elif nome == "estufas":
+        return db.exec(select(Estufa)).all()
+    elif nome == "microcontroladores":
+        return db.exec(select(Microcontrolador)).all()
+    elif nome == "plantas":
+        return db.exec(select(PlantaRobotica)).all()
+    elif nome == "movimentos":
+        return db.exec(select(MovimentoPlanta).order_by(MovimentoPlanta.data_hora.desc()).limit(limit)).all()
+    elif nome == "usuarios":
+        usuarios = db.exec(select(Usuario)).all()
+        return [
+            {
+                "id_usuario": u.id_usuario,
+                "nome": u.nome,
+                "email": u.email,
+                "matricula": u.matricula,
+                "data_cadastro": u.data_cadastro
+            } for u in usuarios
+        ]
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Tabela inválida. Opções aceitas: leituras, sensores, estufas, microcontroladores, plantas, movimentos, usuarios"
+        )
+
+
 
