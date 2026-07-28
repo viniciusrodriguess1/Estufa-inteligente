@@ -4,49 +4,45 @@
 #include <ESP32Servo.h>
 #include <Stepper.h>
 
-// ================= CONFIGURAÇÕES DE REDE =================
+// Configurações de Rede Wi-Fi e Backend
 const char* ssid = "NOME_DA_SUA_REDE_WIFI";
 const char* password = "SENHA_DO_SUA_REDE_WIFI";
-
-// URL do Backend hospedado no Render (HTTPS)
 const char* serverUrl = "https://estufa-inteligente.onrender.com";
 
-// ================= CONFIGURAÇÃO DE IDS DA API =================
-const int ID_LDR_ESQ = 1;  // Sensor ID do LDR Esquerdo (Seeded por padrão no sistema)
-const int ID_LDR_DIR = 7;  // Sensor ID do LDR Direito (Cadastre nas "Configurações" do site)
-const int ID_PLANTA  = 1;  // ID da Planta no banco de dados
+// IDs da API
+const int ID_LDR_ESQ = 1;
+const int ID_LDR_DIR = 7;
+const int ID_PLANTA  = 1;
 
-// ================= HARDWARE PINOUTS =================
+// Pinagem dos Sensores
 const int ldrEsqPin = 34;
 const int ldrDirPin = 35;
 const int potPin = 25;
 
-// Servo SG90 (Rotação Horizontal - Rotação da Base no próprio eixo)
+// Servo SG90 (Base Horizontal)
 const int servoHorPin = 27;
 Servo servoHor;
 int anguloHor = 90;
 
-// Motor de Passo 28BYJ-48 + Driver ULN2003 (Elevação Vertical via Barra Roscada)
+// Motor de Passo 28BYJ-48 + Driver ULN2003 (Barra Roscada Vertical)
 const int IN1 = 19;
 const int IN2 = 18;
 const int IN3 = 5;
 const int IN4 = 17;
 
-const int STEPS_PER_REV = 2048; // Passos por volta completa do 28BYJ-48
-// A sequência para o driver ULN2003 na biblioteca Stepper é: IN1, IN3, IN2, IN4
+const int STEPS_PER_REV = 2048;
 Stepper stepperVer(STEPS_PER_REV, IN1, IN3, IN2, IN4);
 
-int posicaoVertical = 0;  // Posição/Altura equivalente da barra roscada (0 a 180)
+int posicaoVertical = 0;
 const int ALTURA_MAX = 180;
 const int ALTURA_MIN = 0;
-const int PASSOS_POR_CICLO = 32; // Quantidade de passos dados por ajuste de subida/descida
+const int PASSOS_POR_CICLO = 32;
 
 unsigned long lastMove = 0;
 unsigned long ultimoEnvio = 0;
-const unsigned long intervaloEnvio = 5000; // Envia telemetria para a API a cada 5 segundos
+const unsigned long intervaloEnvio = 5000;
 unsigned long lastWifiRetry = 0;
 
-// ===== FILTRO =====
 #define NUM_AMOSTRAS 5
 int leiturasEsq[NUM_AMOSTRAS];
 int leiturasDir[NUM_AMOSTRAS];
@@ -57,36 +53,29 @@ int indice = 0;
 void setup() {
   Serial.begin(115200);
 
-  // Configuração do Servo SG90 (Horizontal)
   ESP32PWM::allocateTimer(0);
   servoHor.setPeriodHertz(50);
   servoHor.attach(servoHorPin, 500, 2400);
   servoHor.write(anguloHor);
 
-  // Configuração do Motor de Passo 28BYJ-48 (Vertical / Barra Roscada)
-  stepperVer.setSpeed(12); // Velocidade em RPM (10 a 15 é ideal para 28BYJ-48)
+  stepperVer.setSpeed(12);
 
-  // Configuração dos pinos do ULN2003 como saída
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
-  desativarBobinasMotorPasso(); // Desliga bobinas inicialmente para não aquecer
+  desativarBobinasMotorPasso();
 
-  // Conexão inicial com Wi-Fi
   conectarWiFi();
 }
 
 void loop() {
-  // Reconexão de Wi-Fi sem bloquear o loop principal
   if (WiFi.status() != WL_CONNECTED && millis() - lastWifiRetry > 20000) {
-    Serial.println("Conexão Wi-Fi inativa. Tentando reconectar...");
     WiFi.disconnect();
     WiFi.begin(ssid, password);
     lastWifiRetry = millis();
   }
 
-  // ===== FILTRO DE MÉDIA MÓVEL (LDRs) =====
   somaEsq -= leiturasEsq[indice];
   somaDir -= leiturasDir[indice];
 
@@ -106,10 +95,7 @@ void loop() {
   int diferenca = leituraEsq - leituraDir;
   int sensibilidade = 40;
 
-  // 1. MOVIMENTAÇÃO FÍSICA DOS MOTORES (Servo + Motor de Passo)
   if (millis() - lastMove > intervalo) {
-
-    // ===== ROTAÇÃO HORIZONTAL (SERVO SG90 - BASE DA PLANTA) =====
     if (diferenca > sensibilidade && anguloHor < 180) {
       anguloHor++;
     } else if (diferenca < -sensibilidade && anguloHor > 0) {
@@ -117,16 +103,15 @@ void loop() {
     }
     servoHor.write(anguloHor);
 
-    // ===== ELEVAÇÃO VERTICAL (MOTOR DE PASSO 28BYJ-48 + BARRA ROSCADA) =====
     int luzMedia = (leituraEsq + leituraDir) / 2;
     int limiteLuz = 1500;
 
     if (luzMedia > limiteLuz && posicaoVertical < ALTURA_MAX) {
-      stepperVer.step(PASSOS_POR_CICLO); // Gira barra roscada no sentido horário (SUBIR)
+      stepperVer.step(PASSOS_POR_CICLO);
       posicaoVertical++;
-      desativarBobinasMotorPasso(); // Desativa bobinas após mover para economizar energia e não aquecer o ULN2003
+      desativarBobinasMotorPasso();
     } else if (luzMedia < limiteLuz && posicaoVertical > ALTURA_MIN) {
-      stepperVer.step(-PASSOS_POR_CICLO); // Gira barra roscada no sentido anti-horário (DESCER)
+      stepperVer.step(-PASSOS_POR_CICLO);
       posicaoVertical--;
       desativarBobinasMotorPasso();
     }
@@ -134,32 +119,27 @@ void loop() {
     lastMove = millis();
   }
 
-  // 2. TRANSMISSÃO DE DADOS HTTPS PARA O RENDER (A cada 5s)
   if (millis() - ultimoEnvio > intervaloEnvio) {
     enviarDadosAPI(leituraEsq, leituraDir);
     ultimoEnvio = millis();
   }
 
-  // DEBUG SERIAL LOCAL
   static unsigned long lastPrint = 0;
   if (millis() - lastPrint > 300) {
     Serial.print("Esq: "); Serial.print(leituraEsq);
     Serial.print(" | Dir: "); Serial.print(leituraDir);
     Serial.print(" | Servo Hor: "); Serial.print(anguloHor);
-    Serial.print("° | Barra Roscada (Ver): "); Serial.println(posicaoVertical);
+    Serial.print("° | Barra Roscada: "); Serial.println(posicaoVertical);
     lastPrint = millis();
   }
 }
 
-// Desativa bobinas do ULN2003 para evitar aquecimento em repouso
 void desativarBobinasMotorPasso() {
   digitalWrite(IN1, LOW);
   digitalWrite(IN2, LOW);
   digitalWrite(IN3, LOW);
   digitalWrite(IN4, LOW);
 }
-
-// ================= FUNÇÕES DE REDE / API =================
 
 void conectarWiFi() {
   Serial.print("Conectando ao Wi-Fi: ");
@@ -178,14 +158,14 @@ void conectarWiFi() {
     Serial.print("IP da ESP32: ");
     Serial.println(WiFi.localIP());
   } else {
-    Serial.println("\nFalha ao conectar. Operando offline.");
+    Serial.println("\nFalha ao conectar WiFi. Modo offline.");
   }
 }
 
 void postRequest(String endpoint, String jsonPayload) {
   if (WiFi.status() == WL_CONNECTED) {
     WiFiClientSecure client;
-    client.setInsecure(); // Ignora validação SSL estrita no ESP32 para conectar via HTTPS ao Render
+    client.setInsecure();
 
     HTTPClient http;
     String url = String(serverUrl) + "/api/" + endpoint;
@@ -196,7 +176,7 @@ void postRequest(String endpoint, String jsonPayload) {
     int httpResponseCode = http.POST(jsonPayload);
 
     if (httpResponseCode > 0) {
-      Serial.print("HTTP POST /" + endpoint + " executado. Status: ");
+      Serial.print("HTTP POST /" + endpoint + " -> ");
       Serial.println(httpResponseCode);
     } else {
       Serial.print("Erro HTTP POST /" + endpoint + ": ");
@@ -209,17 +189,12 @@ void postRequest(String endpoint, String jsonPayload) {
 void enviarDadosAPI(int valorEsq, int valorDir) {
   if (WiFi.status() != WL_CONNECTED) return;
 
-  Serial.println("-> Transmitindo leituras e posições para o Render...");
-
-  // 1. Enviar LDR Esquerdo
   String payloadEsq = "{\"id_sensor\":" + String(ID_LDR_ESQ) + ",\"valor\":" + String(valorEsq) + "}";
   postRequest("leituras", payloadEsq);
 
-  // 2. Enviar LDR Direito
   String payloadDir = "{\"id_sensor\":" + String(ID_LDR_DIR) + ",\"valor\":" + String(valorDir) + "}";
   postRequest("leituras", payloadDir);
 
-  // 3. Determinar a direção da luz
   String direcaoLuz = "Norte";
   int dif = valorEsq - valorDir;
   if (dif > 40) {
@@ -228,7 +203,6 @@ void enviarDadosAPI(int valorEsq, int valorDir) {
     direcaoLuz = "Leste";
   }
 
-  // 4. Enviar Posição da Planta (anguloHor = Servo SG90, anguloVer = Motor de Passo / Barra Roscada)
   String payloadPlanta = "{\"id_planta\":" + String(ID_PLANTA) +
                          ",\"angulo_horizontal\":" + String(anguloHor) +
                          ",\"angulo_vertical\":" + String(posicaoVertical) +
