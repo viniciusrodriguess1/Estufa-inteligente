@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, status, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import Session, select, func
+from sqlmodel import Session, select, func, delete
 from pydantic import BaseModel
 
 from database import engine, create_db_and_tables, get_session
@@ -618,3 +618,47 @@ def update_limites(req: LimitesUpdate, db: Session = Depends(get_session)):
         db.add(limite)
     db.commit()
     return {"mensagem": "Limites operacionais salvos com sucesso!"}
+
+
+# ----------------- ADMINISTRAÇÃO E DIAGNÓSTICO DO BANCO -----------------
+
+@app.get("/api/admin/status-banco")
+def get_status_banco(db: Session = Depends(get_session)):
+    total_leituras = db.exec(select(func.count(Leitura.id_leitura))).one()
+    total_movimentos = db.exec(select(func.count(MovimentoPlanta.id_movimento))).one()
+    total_sensores = db.exec(select(func.count(Sensor.id_sensor))).one()
+    
+    ultima_leitura = db.exec(
+        select(Leitura).order_by(Leitura.data_hora.desc()).limit(1)
+    ).first()
+    
+    ultimo_movimento = db.exec(
+        select(MovimentoPlanta).order_by(MovimentoPlanta.data_hora.desc()).limit(1)
+    ).first()
+    
+    return {
+        "total_leituras": total_leituras,
+        "total_movimentos": total_movimentos,
+        "total_sensores": total_sensores,
+        "ultima_leitura_recebida": {
+            "id_leitura": ultima_leitura.id_leitura if ultima_leitura else None,
+            "id_sensor": ultima_leitura.id_sensor if ultima_leitura else None,
+            "valor": ultima_leitura.valor if ultima_leitura else None,
+            "data_hora": ultima_leitura.data_hora if ultima_leitura else None
+        } if ultima_leitura else None,
+        "ultimo_movimento_recebido": {
+            "id_movimento": ultimo_movimento.id_movimento if ultimo_movimento else None,
+            "angulo_horizontal": ultimo_movimento.angulo_horizontal if ultimo_movimento else None,
+            "angulo_vertical": ultimo_movimento.angulo_vertical if ultimo_movimento else None,
+            "direcao_luz": ultimo_movimento.direcao_luz if ultimo_movimento else None,
+            "data_hora": ultimo_movimento.data_hora if ultimo_movimento else None
+        } if ultimo_movimento else None
+    }
+
+@app.delete("/api/admin/limpar-leituras")
+def limpar_leituras(db: Session = Depends(get_session)):
+    db.exec(delete(Leitura))
+    db.exec(delete(MovimentoPlanta))
+    db.commit()
+    return {"status": "success", "mensagem": "Todas as leituras e movimentos foram apagados com sucesso!"}
+

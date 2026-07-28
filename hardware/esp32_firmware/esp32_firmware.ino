@@ -1,17 +1,17 @@
                                                                                                                                          
-    #include <WiFi.h>                                                                                                                       
-    #include <HTTPClient.h>                                                                                                                 
-    #include <ESP32Servo.h>                                                                                                                 
-                                                                                                                                            
-    // ================= CONFIGURAÇÕES DE REDE =================                                                                            
-    const char* ssid = "NOME_DA_SUA_REDE_WIFI";                                                                                             
-    const char* password = "SENHA_DO_SUA_REDE_WIFI";                                                                                        
-                                                                                                                                            
-    // IP do Computador rodando o Servidor (obtenha via ipconfig no terminal do Windows)                                                    
-    const char* serverIp = "192.168.1.100";                                                                                                 
-    const int serverPort = 8000;                                                                                                            
-                                                                                                                                            
-    // ================= CONFIGURAÇÃO DE IDS DA API =================                                                                       
+    #include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <HTTPClient.h>
+#include <ESP32Servo.h>
+
+// ================= CONFIGURAÇÕES DE REDE =================
+const char* ssid = "NOME_DA_SUA_REDE_WIFI";
+const char* password = "SENHA_DO_SUA_REDE_WIFI";
+
+// URL do Backend hospedado no Render (HTTPS)
+const char* serverUrl = "https://estufa-inteligente.onrender.com";
+
+// ================= CONFIGURAÇÃO DE IDS DA API =================                                                                       
     const int ID_LDR_ESQ = 1;  // Sensor ID do LDR Esquerdo (Seeded por padrão no sistema)                                                  
     const int ID_LDR_DIR = 7;  // Sensor ID do LDR Direito (Cadastre nas "Configurações" do site e mude o ID aqui)                          
     const int ID_PLANTA  = 1;  // ID da Planta no banco de dados                                                                            
@@ -163,10 +163,13 @@
                                                                                                                                             
     void postRequest(String endpoint, String jsonPayload) {                                                                                 
       if (WiFi.status() == WL_CONNECTED) {                                                                                                  
+        WiFiClientSecure client;
+        client.setInsecure(); // Ignora validação SSL estrita no ESP32 para conectar via HTTPS ao Render
+
         HTTPClient http;                                                                                                                    
-        String url = "http://" + String(serverIp) + ":" + String(serverPort) + "/api/" + endpoint;                                          
+        String url = String(serverUrl) + "/api/" + endpoint;                                          
                                                                                                                                             
-        http.begin(url);                                                                                                                    
+        http.begin(client, url);                                                                                                                    
         http.addHeader("Content-Type", "application/json");                                                                                 
                                                                                                                                             
         int httpResponseCode = http.POST(jsonPayload);                                                                                      
