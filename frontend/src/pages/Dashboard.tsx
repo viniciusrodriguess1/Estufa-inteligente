@@ -66,7 +66,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
     
     // Filtra e organiza
     leituras24h.forEach((leitura) => {
-      const date = new Date(leitura.data_hora);
+      let rawStr = typeof leitura.data_hora === 'string' ? leitura.data_hora : "";
+      if (rawStr && !rawStr.endsWith('Z') && !rawStr.includes('+')) {
+        rawStr += 'Z';
+      }
+      const date = rawStr ? new Date(rawStr) : new Date(leitura.data_hora);
       // Formata como "HH:MM"
       const hourStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       

@@ -46,7 +46,11 @@ export const Historico: React.FC<HistoricoProps> = () => {
       : rawData;
 
     filteredRaw.forEach((leitura) => {
-      const date = new Date(leitura.data_hora);
+      let rawStr = typeof leitura.data_hora === 'string' ? leitura.data_hora : "";
+      if (rawStr && !rawStr.endsWith('Z') && !rawStr.includes('+')) {
+        rawStr += 'Z';
+      }
+      const date = rawStr ? new Date(rawStr) : new Date(leitura.data_hora);
       let timeLabel = "";
       
       if (periodo === "24h") {

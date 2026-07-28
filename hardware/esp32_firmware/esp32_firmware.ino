@@ -40,7 +40,7 @@ const int PASSOS_POR_CICLO = 32;
 
 unsigned long lastMove = 0;
 unsigned long ultimoEnvio = 0;
-const unsigned long intervaloEnvio = 5000;
+const unsigned long intervaloEnvio = 15000; // Envia telemetria para a API a cada 15 segundos
 unsigned long lastWifiRetry = 0;
 
 #define NUM_AMOSTRAS 5
