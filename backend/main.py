@@ -121,6 +121,11 @@ class MicrocontroladorCreate(BaseModel):
     ip: str
     id_estufa: int
 
+class MicrocontroladorUpdate(BaseModel):
+    nome: Optional[str] = None
+    ip: Optional[str] = None
+    status: Optional[StatusMicrocontrolador] = None
+
 class EstufaCreate(BaseModel):
     nome: str
     localizacao: str
@@ -575,6 +580,25 @@ def cadastrar_microcontrolador(req: MicrocontroladorCreate, db: Session = Depend
     db.commit()
     db.refresh(micro)
     return micro
+
+@app.put("/api/configuracoes/microcontroladores/{id_micro}", tags=["Administração"], summary="Atualizar IP ou dados de um microcontrolador")
+def atualizar_microcontrolador(id_micro: int, req: MicrocontroladorUpdate, db: Session = Depends(get_session)):
+    micro = db.get(Microcontrolador, id_micro)
+    if not micro:
+        raise HTTPException(status_code=404, detail="Microcontrolador não encontrado.")
+    
+    if req.nome is not None:
+        micro.nome = req.nome
+    if req.ip is not None:
+        micro.ip = req.ip
+    if req.status is not None:
+        micro.status = req.status
+        
+    db.add(micro)
+    db.commit()
+    db.refresh(micro)
+    return {"status": "success", "mensagem": "Microcontrolador atualizado com sucesso!", "microcontrolador": micro}
+
 
 @app.post("/api/configuracoes/estufas", status_code=status.HTTP_201_CREATED)
 def cadastrar_estufa(req: EstufaCreate, db: Session = Depends(get_session)):

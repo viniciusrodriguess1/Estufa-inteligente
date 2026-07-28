@@ -123,6 +123,22 @@ export const Configuracoes: React.FC<ConfiguracoesProps> = ({ onRefreshAll }) =>
     }
   };
 
+  const handleUpdateMicroIp = async (id_micro: number, novoIp: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/configuracoes/microcontroladores/${id_micro}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ip: novoIp })
+      });
+      if (!response.ok) throw new Error("Erro ao atualizar IP do microcontrolador.");
+      triggerStatus("success", "IP do microcontrolador atualizado!");
+      loadEntities();
+      onRefreshAll();
+    } catch (err: any) {
+      triggerStatus("error", err.message);
+    }
+  };
+
   const handleCadastroEstufa = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!estufaNome) {
@@ -353,6 +369,75 @@ export const Configuracoes: React.FC<ConfiguracoesProps> = ({ onRefreshAll }) =>
                 </div>
                 <button type="submit" className="btn btn-primary">Registrar Hardware</button>
               </form>
+
+              {/* Lista de Microcontroladores Cadastrados com Edição de IP */}
+              <div style={{ marginTop: "2rem", paddingTop: "1.5rem", borderTop: "1px solid var(--border-color)" }}>
+                <h4 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "0.5rem" }}>Placas Cadastradas no Sistema</h4>
+                <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
+                  Altere o endereço IP do seu dispositivo para manter o cadastro atualizado com o IP fornecido pelo roteador Wi-Fi.
+                </p>
+
+                {micros.length === 0 ? (
+                  <p style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>Nenhum microcontrolador cadastrado ainda.</p>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                    {micros.map((m) => (
+                      <div
+                        key={m.id_microcontrolador}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: "1rem",
+                          padding: "0.75rem 1rem",
+                          background: "#f8fafc",
+                          borderRadius: "var(--radius-sm)",
+                          border: "1px solid var(--border-color)",
+                          flexWrap: "wrap"
+                        }}
+                      >
+                        <div>
+                          <strong style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>
+                            ID #{m.id_microcontrolador} - {m.nome}
+                          </strong>
+                          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block" }}>
+                            Status: <span style={{ color: m.status === "Online" ? "#10b981" : "#64748b", fontWeight: 600 }}>{m.status}</span>
+                          </span>
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <input
+                            type="text"
+                            defaultValue={m.ip || ""}
+                            id={`input-ip-${m.id_microcontrolador}`}
+                            placeholder="IP (ex: 192.168.1.50)"
+                            style={{
+                              padding: "0.4rem 0.6rem",
+                              fontSize: "0.85rem",
+                              borderRadius: "4px",
+                              border: "1px solid #cbd5e1",
+                              width: "160px"
+                            }}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            style={{ padding: "0.4rem 0.75rem", fontSize: "0.8rem" }}
+                            onClick={() => {
+                              const inputEl = document.getElementById(`input-ip-${m.id_microcontrolador}`) as HTMLInputElement;
+                              if (inputEl) {
+                                handleUpdateMicroIp(m.id_microcontrolador, inputEl.value);
+                              }
+                            }}
+                          >
+                            Salvar IP
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
