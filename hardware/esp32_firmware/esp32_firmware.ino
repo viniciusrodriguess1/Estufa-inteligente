@@ -11,7 +11,7 @@ const char* serverUrl = "https://estufa-inteligente.onrender.com";
 
 // IDs da API
 const int ID_LDR_ESQ = 1;
-const int ID_LDR_DIR = 7;
+const int ID_LDR_DIR = 1; // Altere para o ID do 2º LDR caso cadastre um novo sensor no site
 const int ID_PLANTA  = 1;
 
 // Pinagem dos Sensores
