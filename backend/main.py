@@ -622,7 +622,7 @@ def update_limites(req: LimitesUpdate, db: Session = Depends(get_session)):
 
 # ----------------- ADMINISTRAÇÃO E DIAGNÓSTICO DO BANCO -----------------
 
-@app.get("/api/admin/status-banco")
+@app.get("/api/admin/status-banco", tags=["Administração"], summary="Verificar status e últimas leituras salvas no banco")
 def get_status_banco(db: Session = Depends(get_session)):
     total_leituras = db.exec(select(func.count(Leitura.id_leitura))).one()
     total_movimentos = db.exec(select(func.count(MovimentoPlanta.id_movimento))).one()
@@ -655,10 +655,11 @@ def get_status_banco(db: Session = Depends(get_session)):
         } if ultimo_movimento else None
     }
 
-@app.delete("/api/admin/limpar-leituras")
+@app.delete("/api/admin/limpar-leituras", tags=["Administração"], summary="Apagar todo o histórico de leituras e movimentos")
 def limpar_leituras(db: Session = Depends(get_session)):
     db.exec(delete(Leitura))
     db.exec(delete(MovimentoPlanta))
     db.commit()
     return {"status": "success", "mensagem": "Todas as leituras e movimentos foram apagados com sucesso!"}
+
 
