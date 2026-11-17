@@ -76,16 +76,16 @@ export const Inicio: React.FC<InicioProps> = ({ onNavigateToAuth }) => {
             </div>
             <div className="visual-metrics">
               <div className="v-metric">
-                <span className="v-label">Temperatura</span>
-                <span className="v-val">24.5 °C</span>
+                <span className="v-label">LDR Esquerdo</span>
+                <span className="v-val">2150 Lux</span>
               </div>
               <div className="v-metric">
-                <span className="v-label">Umidade Solo</span>
-                <span className="v-val">68.2 %</span>
+                <span className="v-label">LDR Direito</span>
+                <span className="v-val">2920 Lux</span>
               </div>
               <div className="v-metric">
-                <span className="v-label">Luminosidade</span>
-                <span className="v-val">580 Lux</span>
+                <span className="v-label">Haste / Servo</span>
+                <span className="v-val">100% / 40°</span>
               </div>
             </div>
             <div className="visual-status">
@@ -115,16 +115,16 @@ export const Inicio: React.FC<InicioProps> = ({ onNavigateToAuth }) => {
             </div>
             <div className="sobre-stats">
               <div className="stat-card glass-card">
-                <h3>6+</h3>
-                <p>Sensores Ambientais em Tempo Real</p>
+                <h3>2 LDRs</h3>
+                <p>Fotoreceptores Direcionais em Tempo Real</p>
               </div>
               <div className="stat-card glass-card">
-                <h3>100%</h3>
-                <p>Monitoramento e Gráficos de Histórico</p>
+                <h3>40.960</h3>
+                <p>Passos de Resolução Vertical na Haste</p>
               </div>
               <div className="stat-card glass-card">
-                <h3>2 Eixos</h3>
-                <p>Movimentação da Planta Biomimética</p>
+                <h3>40°–140°</h3>
+                <p>Faixa Angular do Servomotor (Heliotropismo)</p>
               </div>
             </div>
           </div>

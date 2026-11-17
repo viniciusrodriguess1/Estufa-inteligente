@@ -989,7 +989,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
         }
 
         /* =====================================================================
-           CONJUNTO ROTATIVO SUPERIOR (Gira em torno da base do cilindro verde)
+           COLUNA VERTICAL FIXA (Sem inclinação lateral; apenas subida e descida)
         ===================================================================== */
         .rotating-column-group {
           position: relative;
@@ -999,7 +999,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
           flex-direction: column;
           align-items: center;
           justify-content: flex-end;
-          transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+          transform: none !important;
           z-index: 10;
         }
 

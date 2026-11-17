@@ -7,6 +7,7 @@ Este repositório contém o código completo do ecossistema **Estufa Inteligente
 ## 📋 Principais Funcionalidades
 
 1. **Painel de Telemetria Científica (`Planta Robótica`)**:
+   - **Gêmeo Digital 2D Mecânico**: Representação esquemática interativa da estrutura física do robô (base marrom vazada com motor de passo `28BYJ-48` visível no interior, cilindro verde com rosca vertical, haste retangular marrom interna que sobe e desce conforme `posicao_haste`, suporte em "T" branco sempre acima do cilindro com os 2 sensores LDR nas pontas e o girassol apontado para cima no centro, além do servomotor lateral `SG90` com engrenagem acoplada à engrenagem da base do cilindro).
    - **Status Operacional (Batimento Cardíaco)**: Badge dinâmico indicando `"RASTREANDO LUZ"` (`estado = 1`, com pulso verde animado) ou `"EM REPOUSO"` (`estado = 0`).
    - **Sensores Fotoreceptores LDR (Cores Semânticas)**: Mostradores circulares para `ldr_esquerdo` e `ldr_direito` que brilham em amarelo/laranja quando a luminosidade ultrapassa o limiar (`> 1000`).
    - **Motor de Passo (Barra Vertical)**: Indicador vertical de elevação da haste (`posicao_haste`), mapeando de `0` a `40.960` passos (`0%` a `100%`).
