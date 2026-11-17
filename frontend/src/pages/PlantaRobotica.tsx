@@ -19,6 +19,7 @@ import {
   Cpu,
   Gauge,
   Radio,
+  Layers,
 } from "lucide-react";
 import { API_BASE_URL } from "../api";
 
@@ -111,6 +112,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
   const ldr_esquerdo: number = Number(
     plantaData?.ldr_esquerdo ??
       leiturasLdrObj?.ldr_esquerdo ??
+      leiturasLdrObj?.["Sensor LDR Esquerdo"] ??
       leiturasLdrObj?.["LDR Esquerdo"] ??
       valoresLdrArray[0] ??
       0
@@ -119,6 +121,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
   const ldr_direito: number = Number(
     plantaData?.ldr_direito ??
       leiturasLdrObj?.ldr_direito ??
+      leiturasLdrObj?.["Sensor LDR Direito"] ??
       leiturasLdrObj?.["LDR Direito"] ??
       valoresLdrArray[1] ??
       valoresLdrArray[0] ??
@@ -127,7 +130,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
 
   // 1. Status (Batimento Cardíaco): variável `estado` (1 = RASTREANDO LUZ, 0 = EM REPOUSO)
   const estado: number =
-    plantaData?.estado !== undefined
+    plantaData?.estado !== undefined && plantaData?.estado !== null
       ? Number(plantaData.estado)
       : ldr_esquerdo > LIMITE_LUZ_LDR ||
         ldr_direito > LIMITE_LUZ_LDR ||
@@ -135,16 +138,16 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
       ? 1
       : 0;
 
-  // 3. Motor de Passo (Barra Vertical): `posicao_haste` (0 a 40960 passos)
+  // 3. Motor de Passo (Barra Vertical e Altura do Modelo 2D): `posicao_haste` (0 a 40960 passos)
   const posicao_haste: number = Number(
     plantaData?.posicao_haste ?? plantaData?.angulo_vertical ?? 0
   );
-  const percentualHaste: number = Math.min(
+  const percentualAltura: number = Math.min(
     100,
     Math.max(0, (posicao_haste / MAX_PASSOS_MOTOR) * 100)
   );
 
-  // 4. Servomotor (Medidor de Ângulo): `posicao_servo` (40° a 140°)
+  // 4. Servomotor (Medidor de Ângulo e Rotação do Modelo 2D): `posicao_servo` (40° a 140°)
   const posicao_servo: number = Number(
     plantaData?.posicao_servo ?? plantaData?.angulo_horizontal ?? 90
   );
@@ -152,8 +155,10 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
     SERVO_MAX_ANGULO,
     Math.max(SERVO_MIN_ANGULO, posicao_servo)
   );
-  // Mapeia 40°..140° para rotação angular (-50° a +50° em relação ao topo vertical 90°)
+  // Mapeia 40°..140° (centro 90°) para rotação do ponteiro (-50° a +50°)
   const rotacaoPonteiro = anguloServoClamped - 90;
+  // Mapeia o ângulo do servo para inclinação visual proporcional do modelo 2D
+  const rotacaoModelo2D = (anguloServoClamped - 90) * 0.65;
 
   // Preparação de dados históricos para o gráfico científico
   const graphData = [...movimentosData]
@@ -231,15 +236,163 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
       </header>
 
       {/* =====================================================================
-          GRID PRINCIPAL DE INDICADORES DE TELEMETRIA (3 COLUNAS)
+          SEÇÃO PRINCIPAL: MODELO 2D EM DESTAQUE + INDICADORES DE TELEMETRIA
       ===================================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* -------------------------------------------------------------------
-            2. SENSORES LDR (CORES SEMÂNTICAS) - 5 COLUNAS
+            GÊMEO DIGITAL 2D DA ESTRUTURA FÍSICA DO ROBÔ (5 COLUNAS EM DESTAQUE)
         ------------------------------------------------------------------- */}
         <section className="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-xl p-6 flex flex-col justify-between shadow-lg">
-          <div>
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-6">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+            <div className="flex items-center gap-2.5">
+              <Layers size={20} className="text-emerald-400" />
+              <div>
+                <h2 className="text-base font-bold text-white uppercase tracking-wider">
+                  Gêmeo Digital 2D em Tempo Real
+                </h2>
+                <p className="text-xs text-slate-400 font-mono">
+                  Cinemática: Base + Rosca Sem-Fim + Cabeça em T
+                </p>
+              </div>
+            </div>
+            <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
+              MODELO 2D LIVE
+            </span>
+          </div>
+
+          {/* Palco do Modelo 2D */}
+          <div className="robot-stage relative w-full rounded-xl border border-slate-800 overflow-hidden flex flex-col items-center justify-end select-none">
+            {/* HUD de Telemetria no Canto Superior do Modelo 2D */}
+            <div className="absolute top-3 left-3 bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-2 font-mono text-[11px] space-y-1 z-20">
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-slate-400">ALTURA HASTE:</span>
+                <strong className="text-emerald-400">
+                  {percentualAltura.toFixed(1)}% ({posicao_haste} p)
+                </strong>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-slate-400">SERVO (ROTAÇÃO):</span>
+                <strong className="text-cyan-400">{posicao_servo}°</strong>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-slate-400">OLHOS LDR:</span>
+                <strong className="text-yellow-400">
+                  E:{ldr_esquerdo} | D:{ldr_direito}
+                </strong>
+              </div>
+            </div>
+
+            {/* Legenda Angular Superior */}
+            <div className="absolute top-3 right-3 bg-slate-900/90 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-[10px] text-slate-400 z-20">
+              40° &larr; 90° &rarr; 140°
+            </div>
+
+            {/* Linha Guia Vertical Central */}
+            <div className="guide-line-vertical" />
+
+            {/* ===============================================================
+                CONJUNTO MÓVEL ACIMA DA BASE (GIRA COM O SERVOMOTOR)
+                Inclui: Cabeça Branca em T + Olhos LDR + Tronco Verde c/ Rosca
+            =============================================================== */}
+            <div
+              className="robot-upper-assembly"
+              style={{
+                transform: `rotate(${rotacaoModelo2D}deg)`,
+                transformOrigin: "bottom center",
+              }}
+            >
+              {/* 1. A CABEÇA (SUPORTE EM FORMATO DE "T" NA COR BRANCA) */}
+              <div className="robot-t-head-wrapper">
+                {/* Barra Horizontal Superior do "T" com os 2 Olhos (LDRs) */}
+                <div className="robot-t-bar">
+                  {/* Olho Esquerdo (ldr_esquerdo) */}
+                  <div className="ldr-eye-holder">
+                    <div
+                      className={`ldr-eye-circle ${
+                        isLdrEsqAtivo
+                          ? "bg-yellow-500 shadow-glow-yellow border-orange-300"
+                          : "bg-gray-700 border-slate-600"
+                      }`}
+                      title={`LDR Esquerdo: ${ldr_esquerdo}`}
+                    >
+                      <span className="ldr-eye-pupil" />
+                    </div>
+                    <span className="ldr-eye-tag">ESQ</span>
+                  </div>
+
+                  <span className="t-bar-label">SUPORTE T</span>
+
+                  {/* Olho Direito (ldr_direito) */}
+                  <div className="ldr-eye-holder">
+                    <div
+                      className={`ldr-eye-circle ${
+                        isLdrDirAtivo
+                          ? "bg-yellow-500 shadow-glow-yellow border-orange-300"
+                          : "bg-gray-700 border-slate-600"
+                      }`}
+                      title={`LDR Direito: ${ldr_direito}`}
+                    >
+                      <span className="ldr-eye-pupil" />
+                    </div>
+                    <span className="ldr-eye-tag">DIR</span>
+                  </div>
+                </div>
+
+                {/* Pescoço Vertical do "T" Branco */}
+                <div className="robot-t-neck" />
+              </div>
+
+              {/* 2. O TRONCO (HASTE VERDE DINÂMICA + ROSCA VERTICAL DO STEPPER) */}
+              <div
+                className="robot-green-stem"
+                style={{
+                  height: `${percentualAltura}%`,
+                }}
+              >
+                {/* Textura de Rosca Sem-Fim no Eixo Central */}
+                <div className="robot-leadscrew-thread" />
+              </div>
+            </div>
+
+            {/* Eixo / Acoplamento do Servomotor no Topo da Base */}
+            <div className="robot-servo-coupler">
+              <span>SERVO {posicao_servo}°</span>
+            </div>
+
+            {/* 3. A BASE (BLOCO / CAIXA NA COR MARROM NA PARTE INFERIOR) */}
+            <div className="robot-brown-base">
+              <div className="robot-base-inner">
+                <span className="base-title">BASE ESTRUTURAL</span>
+                <span className="base-sub">
+                  Stepper 28BYJ-48 + Servo SG90
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
+            <span>
+              Elevação:{" "}
+              <strong className="text-emerald-400">
+                {percentualAltura.toFixed(1)}%
+              </strong>
+            </span>
+            <span>
+              Inclinação 2D:{" "}
+              <strong className="text-cyan-400">
+                {rotacaoPonteiro > 0 ? `+${rotacaoPonteiro}` : rotacaoPonteiro}°
+              </strong>
+            </span>
+          </div>
+        </section>
+
+        {/* -------------------------------------------------------------------
+            COLUNA DIREITA: OS 3 INDICADORES INSTRUMENTAIS (7 COLUNAS)
+        ------------------------------------------------------------------- */}
+        <div className="lg:col-span-7 flex flex-col gap-6 justify-between">
+          {/* 2. SENSORES LDR (CORES SEMÂNTICAS) */}
+          <section className="bg-slate-900/90 border border-slate-800 rounded-xl p-6 shadow-lg">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-5">
               <div className="flex items-center gap-2.5">
                 <Sun size={20} className="text-yellow-400" />
                 <div>
@@ -256,10 +409,9 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
               </span>
             </div>
 
-            {/* Formas Circulares Destacadas para ldr_esquerdo e ldr_direito */}
-            <div className="grid grid-cols-2 gap-6 my-4 place-items-center">
+            <div className="grid grid-cols-2 gap-6 place-items-center">
               {/* LDR ESQUERDO */}
-              <div className="flex flex-col items-center gap-3">
+              <div className="flex flex-col items-center gap-2.5">
                 <div
                   className={`w-36 h-36 rounded-full flex flex-col items-center justify-center border-4 transition-all duration-500 ${
                     isLdrEsqAtivo
@@ -270,7 +422,9 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
                   <Sun
                     size={22}
                     className={
-                      isLdrEsqAtivo ? "text-slate-950 mb-1" : "text-slate-400 mb-1"
+                      isLdrEsqAtivo
+                        ? "text-slate-950 mb-1"
+                        : "text-slate-400 mb-1"
                     }
                   />
                   <span className="text-3xl font-extrabold font-mono tracking-tight">
@@ -295,7 +449,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
               </div>
 
               {/* LDR DIREITO */}
-              <div className="flex flex-col items-center gap-3">
+              <div className="flex flex-col items-center gap-2.5">
                 <div
                   className={`w-36 h-36 rounded-full flex flex-col items-center justify-center border-4 transition-all duration-500 ${
                     isLdrDirAtivo
@@ -306,7 +460,9 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
                   <Sun
                     size={22}
                     className={
-                      isLdrDirAtivo ? "text-slate-950 mb-1" : "text-slate-400 mb-1"
+                      isLdrDirAtivo
+                        ? "text-slate-950 mb-1"
+                        : "text-slate-400 mb-1"
                     }
                   />
                   <span className="text-3xl font-extrabold font-mono tracking-tight">
@@ -330,164 +486,138 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* Rodapé Analítico Diferencial */}
-          <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
-            <span>
-              Gradiente (&Delta;):{" "}
-              <strong className="text-white">
-                {Math.abs(ldr_esquerdo - ldr_direito)}
-              </strong>
-            </span>
-            <span>
-              Vetor:{" "}
-              <strong className="text-amber-400">
-                {plantaData?.direcao_luz ||
-                  (ldr_esquerdo - ldr_direito > 40
-                    ? "Oeste (Esq)"
-                    : ldr_direito - ldr_esquerdo > 40
-                    ? "Leste (Dir)"
-                    : "Centro")}
-              </strong>
-            </span>
-          </div>
-        </section>
-
-        {/* -------------------------------------------------------------------
-            3. MOTOR DE PASSO (BARRA VERTICAL) - 3 COLUNAS
-        ------------------------------------------------------------------- */}
-        <section className="lg:col-span-3 bg-slate-900/90 border border-slate-800 rounded-xl p-6 flex flex-col justify-between shadow-lg">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
-            <div className="flex items-center gap-2">
-              <ArrowUpDown size={20} className="text-cyan-400" />
-              <div>
-                <h2 className="text-base font-bold text-white uppercase tracking-wider">
-                  Motor de Passo
-                </h2>
-                <p className="text-xs text-slate-400 font-mono">
-                  Elevação da Haste (28BYJ-48)
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Container da Barra Vertical e Leitura Percentual */}
-          <div className="flex items-center justify-center gap-6 my-auto py-2">
-            {/* Escala graduada */}
-            <div className="h-56 flex flex-col justify-between text-[11px] font-mono text-slate-400 text-right select-none">
-              <span>100%</span>
-              <span>75%</span>
-              <span>50%</span>
-              <span>25%</span>
-              <span>0%</span>
-            </div>
-
-            {/* Barra de Progresso Vertical */}
-            <div className="relative h-56 w-14 bg-gray-800 rounded-2xl border-2 border-slate-700 p-1.5 flex flex-col justify-end overflow-hidden shadow-inner">
-              <div
-                className="w-full rounded-xl bg-gradient-to-t from-cyan-600 via-cyan-400 to-emerald-400 transition-all duration-700 ease-out shadow-glow-cyan"
-                style={{ height: `${percentualHaste}%` }}
-              />
-            </div>
-
-            {/* Indicador Numérico ao Lado da Barra */}
-            <div className="flex flex-col justify-center">
-              <span className="text-xs font-mono uppercase text-slate-400">
-                Preenchimento
-              </span>
-              <span className="text-3xl font-extrabold font-mono text-cyan-400 tracking-tight mt-0.5">
-                {percentualHaste.toFixed(1)}%
-              </span>
-              <div className="mt-3 pt-3 border-t border-slate-800">
-                <span className="block text-[11px] font-mono text-slate-400">
-                  posicao_haste
-                </span>
-                <span className="text-sm font-mono font-bold text-white">
-                  {posicao_haste.toLocaleString("pt-BR")}{" "}
-                  <span className="text-slate-400 font-normal">passos</span>
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
-            <span>Teto (100%):</span>
-            <strong className="text-slate-200">
-              {MAX_PASSOS_MOTOR.toLocaleString("pt-BR")} passos
-            </strong>
-          </div>
-        </section>
-
-        {/* -------------------------------------------------------------------
-            4. SERVOMOTOR (MEDIDOR DE ÂNGULO 40° A 140°) - 4 COLUNAS
-        ------------------------------------------------------------------- */}
-        <section className="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-xl p-6 flex flex-col justify-between shadow-lg">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
-            <div className="flex items-center gap-2">
-              <Compass size={20} className="text-emerald-400" />
-              <div>
-                <h2 className="text-base font-bold text-white uppercase tracking-wider">
-                  Servomotor Base (Pan)
-                </h2>
-                <p className="text-xs text-slate-400 font-mono">
-                  Faixa Operacional: {SERVO_MIN_ANGULO}° a {SERVO_MAX_ANGULO}°
-                </p>
-              </div>
-            </div>
-            <span className="text-xs font-mono px-2.5 py-1 rounded bg-slate-800 text-emerald-400 border border-slate-700">
-              SG90 PWM
-            </span>
-          </div>
-
-          {/* Mostrador Circular Elegante com Ponteiro Rotativo */}
-          <div className="flex flex-col items-center justify-center my-auto py-2">
-            <div className="relative w-48 h-48 rounded-full bg-slate-950 border-4 border-slate-700 shadow-inner flex items-center justify-center">
-              {/* Marcações Angulares de Referência (40°, 90°, 140°) */}
-              <span className="absolute top-2 left-1/2 -translate-x-1/2 text-[11px] font-mono font-bold text-emerald-400">
-                90°
-              </span>
-              <span className="absolute top-9 left-4 text-[10px] font-mono font-semibold text-slate-400">
-                40°
-              </span>
-              <span className="absolute top-9 right-3 text-[10px] font-mono font-semibold text-slate-400">
-                140°
-              </span>
-
-              {/* Anel tracejado interno de telemetria */}
-              <div className="w-36 h-36 rounded-full border border-dashed border-slate-700 flex items-center justify-center relative">
-                {/* Container do Ponteiro usando CSS transform: rotate() */}
-                <div
-                  className="absolute inset-0 flex items-center justify-center transition-transform duration-500 ease-out"
-                  style={{ transform: `rotate(${rotacaoPonteiro}deg)` }}
-                >
-                  {/* Haste do Ponteiro apontando para o ângulo atual */}
-                  <div className="w-1 h-16 bg-gradient-to-t from-transparent via-emerald-400 to-emerald-300 rounded-full -translate-y-6 shadow-glow-emerald relative">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-300 -top-1 -left-[3px] absolute" />
+          {/* SUB-GRID INFERIOR DIREITO: MOTOR DE PASSO + SERVOMOTOR */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* 3. MOTOR DE PASSO (BARRA VERTICAL) */}
+            <section className="bg-slate-900/90 border border-slate-800 rounded-xl p-6 flex flex-col justify-between shadow-lg">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <ArrowUpDown size={20} className="text-cyan-400" />
+                  <div>
+                    <h2 className="text-base font-bold text-white uppercase tracking-wider">
+                      Motor de Passo
+                    </h2>
+                    <p className="text-xs text-slate-400 font-mono">
+                      Barra Vertical (28BYJ-48)
+                    </p>
                   </div>
                 </div>
+              </div>
 
-                {/* Centro do Mostrador com Leitura de posicao_servo */}
-                <div className="z-10 w-24 h-24 rounded-full bg-slate-900 border-2 border-slate-700 flex flex-col items-center justify-center shadow-md">
-                  <Gauge size={14} className="text-emerald-400 mb-0.5" />
-                  <span className="text-2xl font-extrabold font-mono text-white leading-none">
-                    {posicao_servo}°
+              <div className="flex items-center justify-center gap-5 my-auto py-2">
+                <div className="h-48 flex flex-col justify-between text-[11px] font-mono text-slate-400 text-right select-none">
+                  <span>100%</span>
+                  <span>75%</span>
+                  <span>50%</span>
+                  <span>25%</span>
+                  <span>0%</span>
+                </div>
+
+                {/* Barra de Progresso Vertical */}
+                <div className="relative h-48 w-14 bg-gray-800 rounded-2xl border-2 border-slate-700 p-1.5 flex flex-col justify-end overflow-hidden shadow-inner">
+                  <div
+                    className="w-full rounded-xl bg-gradient-to-t from-cyan-600 via-cyan-400 to-emerald-400 transition-all duration-700 ease-out shadow-glow-cyan"
+                    style={{ height: `${percentualAltura}%` }}
+                  />
+                </div>
+
+                <div className="flex flex-col justify-center">
+                  <span className="text-xs font-mono uppercase text-slate-400">
+                    Altura Haste
                   </span>
-                  <span className="text-[10px] font-mono text-slate-400 mt-1">
-                    posicao_servo
+                  <span className="text-3xl font-extrabold font-mono text-cyan-400 tracking-tight mt-0.5">
+                    {percentualAltura.toFixed(1)}%
                   </span>
+                  <div className="mt-3 pt-3 border-t border-slate-800">
+                    <span className="block text-[11px] font-mono text-slate-400">
+                      posicao_haste
+                    </span>
+                    <span className="text-sm font-mono font-bold text-white">
+                      {posicao_haste.toLocaleString("pt-BR")}{" "}
+                      <span className="text-slate-400 font-normal">passos</span>
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
-            <span>Limites: 40° (Esq) | 140° (Dir)</span>
-            <strong className="text-emerald-400">
-              Desvio: {rotacaoPonteiro > 0 ? `+${rotacaoPonteiro}` : rotacaoPonteiro}°
-            </strong>
+              <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
+                <span>Teto (100%):</span>
+                <strong className="text-slate-200">
+                  {MAX_PASSOS_MOTOR.toLocaleString("pt-BR")} passos
+                </strong>
+              </div>
+            </section>
+
+            {/* 4. SERVOMOTOR (MEDIDOR DE ÂNGULO 40° A 140°) */}
+            <section className="bg-slate-900/90 border border-slate-800 rounded-xl p-6 flex flex-col justify-between shadow-lg">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <Compass size={20} className="text-emerald-400" />
+                  <div>
+                    <h2 className="text-base font-bold text-white uppercase tracking-wider">
+                      Servomotor (Pan)
+                    </h2>
+                    <p className="text-xs text-slate-400 font-mono">
+                      Faixa: {SERVO_MIN_ANGULO}° a {SERVO_MAX_ANGULO}°
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-emerald-400 border border-slate-700">
+                  SG90
+                </span>
+              </div>
+
+              <div className="flex flex-col items-center justify-center my-auto py-1">
+                <div className="relative w-48 h-48 rounded-full bg-slate-950 border-4 border-slate-700 shadow-inner flex items-center justify-center">
+                  <span className="absolute top-2 left-1/2 -translate-x-1/2 text-[11px] font-mono font-bold text-emerald-400">
+                    90°
+                  </span>
+                  <span className="absolute top-9 left-4 text-[10px] font-mono font-semibold text-slate-400">
+                    40°
+                  </span>
+                  <span className="absolute top-9 right-3 text-[10px] font-mono font-semibold text-slate-400">
+                    140°
+                  </span>
+
+                  <div className="w-36 h-36 rounded-full border border-dashed border-slate-700 flex items-center justify-center relative">
+                    {/* Ponteiro usando CSS transform: rotate() */}
+                    <div
+                      className="absolute inset-0 flex items-center justify-center transition-transform duration-500 ease-out"
+                      style={{ transform: `rotate(${rotacaoPonteiro}deg)` }}
+                    >
+                      <div className="w-1 h-16 bg-gradient-to-t from-transparent via-emerald-400 to-emerald-300 rounded-full -translate-y-6 shadow-glow-emerald relative">
+                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-300 -top-1 -left-[3px] absolute" />
+                      </div>
+                    </div>
+
+                    <div className="z-10 w-24 h-24 rounded-full bg-slate-900 border-2 border-slate-700 flex flex-col items-center justify-center shadow-md">
+                      <Gauge size={14} className="text-emerald-400 mb-0.5" />
+                      <span className="text-2xl font-extrabold font-mono text-white leading-none">
+                        {posicao_servo}°
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400 mt-1">
+                        posicao_servo
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
+                <span>Limites: 40° | 140°</span>
+                <strong className="text-emerald-400">
+                  Desvio:{" "}
+                  {rotacaoPonteiro > 0
+                    ? `+${rotacaoPonteiro}`
+                    : rotacaoPonteiro}
+                  °
+                </strong>
+              </div>
+            </section>
           </div>
-        </section>
+        </div>
       </div>
 
       {/* =====================================================================
@@ -628,8 +758,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
       </div>
 
       {/* =====================================================================
-          CAMADA UTILITÁRIA TAILWIND / SCOPED TELEMETRY STYLES
-          Garante renderização idêntica mesmo em ambientes sem PostCSS/Tailwind
+          ESTILOS DO MODELO 2D E UTILITÁRIOS TAILWIND SCOPED
       ===================================================================== */}
       <style>{`
         .telemetry-wrapper {
@@ -643,6 +772,208 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
           flex-direction: column;
           gap: 1.5rem;
         }
+
+        /* Palco do Modelo 2D */
+        .robot-stage {
+          height: 460px;
+          background-color: #060b16;
+          background-image:
+            linear-gradient(to right, rgba(56, 189, 248, 0.05) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+          background-size: 28px 28px;
+          box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.75);
+          padding-bottom: 18px;
+        }
+
+        .guide-line-vertical {
+          position: absolute;
+          top: 16px;
+          bottom: 18px;
+          left: 50%;
+          transform: translateX(-50%);
+          border-left: 1px dashed rgba(56, 189, 248, 0.22);
+          pointer-events: none;
+        }
+
+        /* Conjunto rotativo (Haste Verde + Cabeça em T Branca) */
+        .robot-upper-assembly {
+          height: 255px;
+          width: 220px;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+          align-items: center;
+          transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+          z-index: 10;
+        }
+
+        /* A Cabeça: Suporte em "T" na cor branca */
+        .robot-t-head-wrapper {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          flex-shrink: 0;
+        }
+
+        .robot-t-bar {
+          width: 156px;
+          height: 36px;
+          background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
+          border: 2px solid #cbd5e1;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0 8px;
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+          position: relative;
+        }
+
+        .t-bar-label {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: 9px;
+          font-weight: 800;
+          color: #334155;
+          letter-spacing: 0.06em;
+        }
+
+        .robot-t-neck {
+          width: 30px;
+          height: 22px;
+          background: linear-gradient(90deg, #e2e8f0 0%, #ffffff 50%, #cbd5e1 100%);
+          border-left: 2px solid #cbd5e1;
+          border-right: 2px solid #cbd5e1;
+        }
+
+        /* Os Olhos (LDRs na Cabeça Branca em T) */
+        .ldr-eye-holder {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          position: relative;
+        }
+
+        .ldr-eye-circle {
+          width: 24px;
+          height: 24px;
+          border-radius: 9999px;
+          border-width: 2px;
+          border-style: solid;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.35s ease;
+        }
+
+        .ldr-eye-pupil {
+          width: 8px;
+          height: 8px;
+          border-radius: 9999px;
+          background-color: rgba(15, 23, 42, 0.75);
+        }
+
+        .ldr-eye-tag {
+          position: absolute;
+          top: -15px;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: 8px;
+          font-weight: 700;
+          color: #94a3b8;
+        }
+
+        /* O Tronco: Cilindro/Retângulo vertical verde com altura dinâmica */
+        .robot-green-stem {
+          width: 34px;
+          min-height: 26px;
+          max-height: 190px;
+          background: linear-gradient(90deg, #15803d 0%, #22c55e 50%, #166534 100%);
+          border: 2px solid #4ade80;
+          border-radius: 6px 6px 2px 2px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+          transition: height 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+          box-shadow: 0 0 18px rgba(34, 197, 94, 0.3);
+        }
+
+        /* Fuso roscado interno representando o motor de passo */
+        .robot-leadscrew-thread {
+          width: 10px;
+          height: 100%;
+          background: repeating-linear-gradient(
+            -30deg,
+            #94a3b8,
+            #94a3b8 3px,
+            #334155 3px,
+            #334155 6px
+          );
+          border-left: 1px solid rgba(15, 23, 42, 0.6);
+          border-right: 1px solid rgba(15, 23, 42, 0.6);
+          opacity: 0.85;
+        }
+
+        /* Acoplamento do Servomotor entre a Base Marrom e a Haste */
+        .robot-servo-coupler {
+          width: 68px;
+          height: 18px;
+          background: linear-gradient(90deg, #1e293b 0%, #334155 50%, #1e293b 100%);
+          border: 1px solid #64748b;
+          border-radius: 4px 4px 0 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: 9px;
+          font-weight: 700;
+          color: #38bdf8;
+          z-index: 12;
+        }
+
+        /* A Base: Bloco/Caixa na cor marrom na parte inferior */
+        .robot-brown-base {
+          width: 190px;
+          height: 76px;
+          background: linear-gradient(180deg, #854d0e 0%, #713f12 55%, #422006 100%);
+          border: 2px solid #a16207;
+          border-radius: 10px 10px 6px 6px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.65), inset 0 2px 4px rgba(254, 240, 138, 0.15);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 8px;
+          z-index: 12;
+        }
+
+        .robot-base-inner {
+          width: 100%;
+          height: 100%;
+          border: 1px dashed rgba(254, 240, 138, 0.3);
+          border-radius: 6px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          background-color: rgba(28, 25, 23, 0.35);
+        }
+
+        .base-title {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: 11px;
+          font-weight: 800;
+          color: #fef08a;
+          letter-spacing: 0.06em;
+        }
+
+        .base-sub {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: 9px;
+          color: #fde047;
+          opacity: 0.85;
+          margin-top: 2px;
+        }
+
+        /* Camada Utilitária Tailwind Scoped */
         .telemetry-wrapper .bg-slate-900\\/90 { background-color: rgba(15, 23, 42, 0.92); }
         .telemetry-wrapper .bg-slate-950 { background-color: #020617; }
         .telemetry-wrapper .bg-slate-900 { background-color: #0f172a; }
@@ -698,27 +1029,27 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
         .telemetry-wrapper .p-3 { padding: 0.75rem; }
         .telemetry-wrapper .p-5 { padding: 1.25rem; }
         .telemetry-wrapper .p-6 { padding: 1.5rem; }
+        .telemetry-wrapper .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
         .telemetry-wrapper .px-2\\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
         .telemetry-wrapper .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
         .telemetry-wrapper .px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .telemetry-wrapper .py-0\\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
         .telemetry-wrapper .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+        .telemetry-wrapper .py-1\\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
         .telemetry-wrapper .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
         .telemetry-wrapper .py-2\\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
         .telemetry-wrapper .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
         .telemetry-wrapper .pb-3 { padding-bottom: 0.75rem; }
         .telemetry-wrapper .pt-3 { padding-top: 0.75rem; }
-        .telemetry-wrapper .pt-4 { padding-top: 1rem; }
 
         .telemetry-wrapper .mt-0\\.5 { margin-top: 0.125rem; }
         .telemetry-wrapper .mt-1 { margin-top: 0.25rem; }
         .telemetry-wrapper .mt-3 { margin-top: 0.75rem; }
         .telemetry-wrapper .mt-4 { margin-top: 1rem; }
-        .telemetry-wrapper .mt-6 { margin-top: 1.5rem; }
         .telemetry-wrapper .mb-0\\.5 { margin-bottom: 0.125rem; }
         .telemetry-wrapper .mb-1 { margin-bottom: 0.25rem; }
         .telemetry-wrapper .mb-4 { margin-bottom: 1rem; }
-        .telemetry-wrapper .mb-6 { margin-bottom: 1.5rem; }
-        .telemetry-wrapper .my-4 { margin-top: 1rem; margin-bottom: 1rem; }
+        .telemetry-wrapper .mb-5 { margin-bottom: 1.25rem; }
         .telemetry-wrapper .my-auto { margin-top: auto; margin-bottom: auto; }
 
         .telemetry-wrapper .flex { display: flex; }
@@ -729,6 +1060,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
         .telemetry-wrapper .absolute { position: absolute; }
         .telemetry-wrapper .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
         .telemetry-wrapper .z-10 { z-index: 10; }
+        .telemetry-wrapper .z-20 { z-index: 20; }
         .telemetry-wrapper .overflow-hidden { overflow: hidden; }
         .telemetry-wrapper .overflow-y-auto { overflow-y: auto; }
 
@@ -744,6 +1076,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
         .telemetry-wrapper .gap-2\\.5 { gap: 0.625rem; }
         .telemetry-wrapper .gap-3 { gap: 0.75rem; }
         .telemetry-wrapper .gap-4 { gap: 1rem; }
+        .telemetry-wrapper .gap-5 { gap: 1.25rem; }
         .telemetry-wrapper .gap-6 { gap: 1.5rem; }
 
         .telemetry-wrapper .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
@@ -754,12 +1087,11 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
           .telemetry-wrapper .md\\:items-center { align-items: center; }
           .telemetry-wrapper .md\\:justify-between { justify-content: space-between; }
           .telemetry-wrapper .md\\:self-center { align-self: center; }
+          .telemetry-wrapper .md\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
 
         @media (min-width: 1024px) {
           .telemetry-wrapper .lg\\:grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
-          .telemetry-wrapper .lg\\:col-span-3 { grid-column: span 3 / span 3; }
-          .telemetry-wrapper .lg\\:col-span-4 { grid-column: span 4 / span 4; }
           .telemetry-wrapper .lg\\:col-span-5 { grid-column: span 5 / span 5; }
           .telemetry-wrapper .lg\\:col-span-7 { grid-column: span 7 / span 7; }
         }
@@ -779,14 +1111,15 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
         .telemetry-wrapper .h-24 { height: 6rem; }
         .telemetry-wrapper .h-36 { height: 9rem; }
         .telemetry-wrapper .h-48 { height: 12rem; }
-        .telemetry-wrapper .h-56 { height: 14rem; }
         .telemetry-wrapper .h-60 { height: 15rem; }
         .telemetry-wrapper .h-full { height: 100%; }
         .telemetry-wrapper .max-h-60 { max-height: 15rem; }
 
         .telemetry-wrapper .top-2 { top: 0.5rem; }
+        .telemetry-wrapper .top-3 { top: 0.75rem; }
         .telemetry-wrapper .top-9 { top: 2.25rem; }
         .telemetry-wrapper .-top-1 { top: -0.25rem; }
+        .telemetry-wrapper .left-3 { left: 0.75rem; }
         .telemetry-wrapper .left-4 { left: 1rem; }
         .telemetry-wrapper .left-1\\/2 { left: 50%; }
         .telemetry-wrapper .-left-\\[3px\\] { left: -3px; }
@@ -820,7 +1153,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
           background-image: linear-gradient(to top, #0891b2, #22d3ee, #34d399);
         }
         .telemetry-wrapper .shadow-glow-yellow {
-          box-shadow: 0 0 30px rgba(234, 179, 8, 0.55), inset 0 2px 6px rgba(255, 255, 255, 0.35);
+          box-shadow: 0 0 28px rgba(234, 179, 8, 0.65), inset 0 2px 6px rgba(255, 255, 255, 0.35);
         }
         .telemetry-wrapper .shadow-glow-cyan {
           box-shadow: 0 0 18px rgba(34, 211, 238, 0.45);
