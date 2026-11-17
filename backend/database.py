@@ -2,32 +2,32 @@ import os
 from sqlmodel import create_engine, SQLModel, Session
 from sqlalchemy import event
 
-db_url = os.getenv("DATABASE_URL", "sqlite:///./pibic.db").strip()
+SQLITE_FALLBACK_URL = "sqlite:///./pibic.db"
+db_url = os.getenv("DATABASE_URL", SQLITE_FALLBACK_URL).strip()
 
-# Normaliza prefixos de URL do PostgreSQL (postgres://, postgresql+psycopg://, etc.)
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
-elif db_url.startswith("postgres+psycopg://"):
-    db_url = db_url.replace("postgres+psycopg://", "postgresql+psycopg://", 1)
 
-if db_url.startswith("postgresql"):
-    # Se psycopg2 estiver disponível, força o driver psycopg2 caso psycopg (v3) não esteja instalado
-    try:
-        import psycopg  # noqa: F401
-    except ImportError:
-        if "postgresql+psycopg://" in db_url:
-            db_url = db_url.replace("postgresql+psycopg://", "postgresql+psycopg2://", 1)
-        elif db_url.startswith("postgresql://"):
-            db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
+def _build_engine(url: str):
+    if url.startswith("sqlite"):
+        return create_engine(url, connect_args={"check_same_thread": False})
+    # Timeout curto (5s) para não travar o boot no Render caso o banco PostgreSQL tenha expirado
+    return create_engine(url, connect_args={"connect_timeout": 5}, pool_pre_ping=True)
 
 DATABASE_URL = db_url
+engine = _build_engine(DATABASE_URL)
 
-# Configurações do SQLite para permitir conexões de múltiplas threads
-connect_args = {}
-if DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
-
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
+# Se for PostgreSQL, testa a conexão rapidamente; se o banco tiver expirado/inacessível, usa SQLite local
+if not DATABASE_URL.startswith("sqlite"):
+    try:
+        with engine.connect() as conn:
+            pass
+        print("[DATABASE] Conectado ao PostgreSQL com sucesso!")
+    except Exception as err:
+        print(f"[DATABASE WARNING] Não foi possível conectar ao PostgreSQL ({err}).")
+        print("[DATABASE] Ativando fallback automático para SQLite local (pibic.db) para manter a API online.")
+        DATABASE_URL = SQLITE_FALLBACK_URL
+        engine = _build_engine(DATABASE_URL)
 
 # Habilita o modo WAL no SQLite para evitar travamentos de escrita concorrente
 @event.listens_for(engine, "connect")

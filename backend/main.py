@@ -30,7 +30,10 @@ app.add_middleware(
 # Executar migração e semeadura automática no startup
 @app.on_event("startup")
 def on_startup():
-    seed_db()
+    try:
+        seed_db()
+    except Exception as err:
+        print(f"[STARTUP WARNING] Erro ao inicializar/semear banco de dados: {err}")
 
 # ----------------- CONFIGURAÇÃO WEBSOCKETS -----------------
 
