@@ -88,7 +88,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
 
   useEffect(() => {
     fetchTelemetria();
-    const interval = setInterval(fetchTelemetria, 5000);
+    const interval = setInterval(fetchTelemetria, 2000);
     return () => clearInterval(interval);
   }, [fetchTelemetria]);
 
@@ -324,96 +324,140 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
                         <span className="ldr-side-label">LDR ESQ</span>
                       </div>
 
-                      {/* GIRASSOL NO MEIO DO SUPORTE EM T */}
+                      {/* GIRASSOL APONTADO PARA CIMA NO TOPO CENTRAL DO SUPORTE EM T */}
                       <div
                         className="sunflower-wrapper"
-                        title="Girassol Biomimético no centro do Suporte em T"
+                        title="Girassol Biomimético apontado para a fonte luminosa superior"
                       >
                         <svg
-                          viewBox="0 0 64 64"
-                          width="46"
-                          height="46"
+                          viewBox="0 0 80 86"
+                          width="62"
+                          height="66"
                           className="sunflower-svg"
                         >
-                          {/* Pétalas amarelas/douradas ao redor da corola */}
-                          <g fill="#facc15" stroke="#eab308" strokeWidth="1.2">
-                            <ellipse cx="32" cy="8" rx="4.5" ry="9" />
-                            <ellipse cx="32" cy="56" rx="4.5" ry="9" />
-                            <ellipse cx="8" cy="32" rx="9" ry="4.5" />
-                            <ellipse cx="56" cy="32" rx="9" ry="4.5" />
+                          {/* Feixe/Halo sutil quando rastreando luz */}
+                          {estado === 1 && (
                             <ellipse
-                              cx="32"
-                              cy="8"
-                              rx="4.5"
-                              ry="9"
-                              transform="rotate(30 32 32)"
+                              cx="40"
+                              cy="26"
+                              rx="30"
+                              ry="20"
+                              fill="rgba(250, 204, 21, 0.18)"
                             />
-                            <ellipse
-                              cx="32"
-                              cy="8"
-                              rx="4.5"
-                              ry="9"
-                              transform="rotate(60 32 32)"
-                            />
-                            <ellipse
-                              cx="32"
-                              cy="8"
-                              rx="4.5"
-                              ry="9"
-                              transform="rotate(120 32 32)"
-                            />
-                            <ellipse
-                              cx="32"
-                              cy="8"
-                              rx="4.5"
-                              ry="9"
-                              transform="rotate(150 32 32)"
-                            />
-                            <ellipse
-                              cx="32"
-                              cy="8"
-                              rx="4.5"
-                              ry="9"
-                              transform="rotate(210 32 32)"
-                            />
-                            <ellipse
-                              cx="32"
-                              cy="8"
-                              rx="4.5"
-                              ry="9"
-                              transform="rotate(240 32 32)"
-                            />
-                            <ellipse
-                              cx="32"
-                              cy="8"
-                              rx="4.5"
-                              ry="9"
-                              transform="rotate(300 32 32)"
-                            />
-                            <ellipse
-                              cx="32"
-                              cy="8"
-                              rx="4.5"
-                              ry="9"
-                              transform="rotate(330 32 32)"
-                            />
-                          </g>
-                          {/* Miolo marrom escuro do girassol com sementes */}
-                          <circle
-                            cx="32"
-                            cy="32"
-                            r="14"
-                            fill="#451a03"
-                            stroke="#78350f"
-                            strokeWidth="2.5"
+                          )}
+
+                          {/* Haste curta / Cálice verde segurando a flor apontada para cima */}
+                          <path
+                            d="M 36 52 L 36 78 L 44 78 L 44 52 Z"
+                            fill="#16a34a"
+                            stroke="#4ade80"
+                            strokeWidth="1.5"
                           />
-                          <circle cx="28" cy="28" r="1.4" fill="#d97706" />
-                          <circle cx="36" cy="28" r="1.4" fill="#d97706" />
-                          <circle cx="32" cy="32" r="1.4" fill="#fbbf24" />
-                          <circle cx="27" cy="35" r="1.4" fill="#d97706" />
-                          <circle cx="37" cy="35" r="1.4" fill="#d97706" />
-                          <circle cx="32" cy="25" r="1.2" fill="#fbbf24" />
-                          <circle cx="32" cy="38" r="1.2" fill="#fbbf24" />
+                          {/* Folhas laterais no caule do girassol */}
+                          <path
+                            d="M 36 66 Q 20 60 22 70 Q 28 74 36 70 Z"
+                            fill="#22c55e"
+                            stroke="#4ade80"
+                            strokeWidth="1"
+                          />
+                          <path
+                            d="M 44 66 Q 60 60 58 70 Q 52 74 44 70 Z"
+                            fill="#22c55e"
+                            stroke="#4ade80"
+                            strokeWidth="1"
+                          />
+                          {/* Receptáculo verde (base da corola voltada para cima) */}
+                          <path
+                            d="M 25 44 Q 40 56 55 44 L 48 53 L 32 53 Z"
+                            fill="#15803d"
+                            stroke="#4ade80"
+                            strokeWidth="1.2"
+                          />
+
+                          {/* Corola do Girassol inclinada/apontada para cima (perspectiva voltada ao topo) */}
+                          <g transform="translate(40, 28) scale(1, 0.78)">
+                            {/* Pétalas amarelas/douradas radiando para cima */}
+                            <g fill="#facc15" stroke="#ca8a04" strokeWidth="1.3">
+                              <ellipse cx="0" cy="-24" rx="5" ry="10" />
+                              <ellipse cx="0" cy="24" rx="5" ry="10" />
+                              <ellipse cx="-24" cy="0" rx="10" ry="5" />
+                              <ellipse cx="24" cy="0" rx="10" ry="5" />
+                              <ellipse
+                                cx="0"
+                                cy="-24"
+                                rx="5"
+                                ry="10"
+                                transform="rotate(30)"
+                              />
+                              <ellipse
+                                cx="0"
+                                cy="-24"
+                                rx="5"
+                                ry="10"
+                                transform="rotate(60)"
+                              />
+                              <ellipse
+                                cx="0"
+                                cy="-24"
+                                rx="5"
+                                ry="10"
+                                transform="rotate(120)"
+                              />
+                              <ellipse
+                                cx="0"
+                                cy="-24"
+                                rx="5"
+                                ry="10"
+                                transform="rotate(150)"
+                              />
+                              <ellipse
+                                cx="0"
+                                cy="-24"
+                                rx="5"
+                                ry="10"
+                                transform="rotate(210)"
+                              />
+                              <ellipse
+                                cx="0"
+                                cy="-24"
+                                rx="5"
+                                ry="10"
+                                transform="rotate(240)"
+                              />
+                              <ellipse
+                                cx="0"
+                                cy="-24"
+                                rx="5"
+                                ry="10"
+                                transform="rotate(300)"
+                              />
+                              <ellipse
+                                cx="0"
+                                cy="-24"
+                                rx="5"
+                                ry="10"
+                                transform="rotate(330)"
+                              />
+                            </g>
+
+                            {/* Miolo marrom escuro voltado para cima */}
+                            <circle
+                              cx="0"
+                              cy="-2"
+                              r="14.5"
+                              fill="#451a03"
+                              stroke="#92400e"
+                              strokeWidth="2.5"
+                            />
+                            {/* Sementes douradas no disco central */}
+                            <circle cx="-5" cy="-6" r="1.5" fill="#fbbf24" />
+                            <circle cx="5" cy="-6" r="1.5" fill="#fbbf24" />
+                            <circle cx="0" cy="-10" r="1.5" fill="#d97706" />
+                            <circle cx="0" cy="-2" r="1.6" fill="#fde047" />
+                            <circle cx="-6" cy="1" r="1.5" fill="#d97706" />
+                            <circle cx="6" cy="1" r="1.5" fill="#d97706" />
+                            <circle cx="0" cy="5" r="1.4" fill="#fbbf24" />
+                          </g>
                         </svg>
                       </div>
 
@@ -1003,14 +1047,14 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
           position: relative;
         }
 
-        /* Girassol centralizado no meio do Suporte em T */
+        /* Girassol erguido e apontado para cima no topo central do Suporte em T */
         .sunflower-wrapper {
           position: relative;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-top: -14px;
-          filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
+          margin-top: -46px;
+          filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
           z-index: 18;
         }
 
