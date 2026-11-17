@@ -17,10 +17,11 @@ def stream_output(process, prefix, color_code):
 
 def main():
     processes = []
-    
+    npm_cmd = "npm.cmd" if os.name == "nt" else "npm"
+
     # Habilita cores de terminal no Windows
-    if os.name == 'nt':
-        os.system('color')
+    if os.name == "nt":
+        os.system("color")
 
     # Resolve os caminhos absolutos das pastas do projeto
     root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -31,13 +32,13 @@ def main():
     if not os.path.exists(os.path.join(frontend_dir, "node_modules")):
         log("LAUNCHER", "Instalando dependências do frontend (npm install)...\n", "35")
         try:
-            subprocess.run("npm install", shell=True, cwd=frontend_dir, check=True)
+            subprocess.run(f"{npm_cmd} install", shell=True, cwd=frontend_dir, check=True)
             log("LAUNCHER", "Dependências instaladas com sucesso!\n", "32")
         except subprocess.CalledProcessError as e:
             log("LAUNCHER", f"Erro ao executar 'npm install': {e}\n", "31")
             sys.exit(1)
 
-    log("LAUNCHER", "Iniciando os serviços do AgroTech...\n", "35")
+    log("LAUNCHER", "Iniciando os serviços da Estufa Inteligente & Planta Robótica (PIBIC)...\n", "35")
 
     try:
         # Inicializa o Backend FastAPI
@@ -49,29 +50,29 @@ def main():
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
-            encoding='utf-8',
-            errors='replace'
+            encoding="utf-8",
+            errors="replace"
         )
         processes.append((backend_proc, "BACKEND", "36"))
 
         # Inicializa o Frontend Vite
         frontend_proc = subprocess.Popen(
-            "npm run dev",
+            f"{npm_cmd} run dev",
             shell=True,
             cwd=frontend_dir,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
-            encoding='utf-8',
-            errors='replace'
+            encoding="utf-8",
+            errors="replace"
         )
         processes.append((frontend_proc, "FRONTEND", "32"))
 
         # Aguarda 4 segundos para inicialização da API
         time.sleep(4)
 
-        # Inicializa o Simulador de ESP32
+        # Inicializa o Simulador de Telemetria da ESP32
         simulator_proc = subprocess.Popen(
             "uv run python simulator.py",
             shell=True,
@@ -80,8 +81,8 @@ def main():
             stderr=subprocess.STDOUT,
             text=True,
             bufsize=1,
-            encoding='utf-8',
-            errors='replace'
+            encoding="utf-8",
+            errors="replace"
         )
         processes.append((simulator_proc, "SIMULATOR", "33"))
 
@@ -93,7 +94,7 @@ def main():
             threads.append(t)
 
         log("LAUNCHER", "Todos os processos ativos! Pressione CTRL+C para encerrar tudo.\n", "35")
-        
+
         # Monitora a saúde dos subprocessos
         while True:
             for proc, name, color in processes:
@@ -104,18 +105,17 @@ def main():
 
     except (KeyboardInterrupt, SystemExit):
         log("LAUNCHER", "\nFinalizando subprocessos de forma limpa...\n", "31")
-        
+
         # Encerra os processos
         for proc, name, _ in processes:
             if proc.poll() is None:
                 log("LAUNCHER", f"Encerrando {name}...\n", "31")
-                # No Windows, encerra a árvore de processos para não deixar órfãos
-                if os.name == 'nt':
+                if os.name == "nt":
                     subprocess.run(f"taskkill /F /T /PID {proc.pid}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 else:
                     proc.terminate()
-        
-        log("LAUNCHER", "Sistema AgroTech finalizado.\n", "32")
+
+        log("LAUNCHER", "Sistema Estufa Inteligente finalizado.\n", "32")
 
 if __name__ == "__main__":
     main()
