@@ -1,7 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import List, Optional
 from sqlmodel import Field, Relationship, SQLModel
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 # ----------------- ENUMS -----------------
 
@@ -37,7 +41,7 @@ class Estufa(SQLModel, table=True):
     nome: str = Field(max_length=100)
     localizacao: Optional[str] = Field(default=None, max_length=150)
     descricao: Optional[str] = Field(default=None)
-    data_criacao: datetime = Field(default_factory=datetime.utcnow)
+    data_criacao: datetime = Field(default_factory=utc_now)
 
     # Relationships
     microcontroladores: List["Microcontrolador"] = Relationship(back_populates="estufa", cascade_delete=True)
@@ -79,7 +83,7 @@ class Leitura(SQLModel, table=True):
     id_leitura: Optional[int] = Field(default=None, primary_key=True)
     id_sensor: int = Field(foreign_key="sensor.id_sensor", ondelete="CASCADE")
     valor: float = Field()
-    data_hora: datetime = Field(default_factory=datetime.utcnow)
+    data_hora: datetime = Field(default_factory=utc_now)
 
     # Relationships
     sensor: "Sensor" = Relationship(back_populates="leituras")
@@ -108,7 +112,7 @@ class MovimentoPlanta(SQLModel, table=True):
     angulo_horizontal: Optional[float] = Field(default=None)
     angulo_vertical: Optional[float] = Field(default=None)
     direcao_luz: Optional[str] = Field(default=None, max_length=50)
-    data_hora: datetime = Field(default_factory=datetime.utcnow)
+    data_hora: datetime = Field(default_factory=utc_now)
 
     # Relationships
     planta: "PlantaRobotica" = Relationship(back_populates="movimentos")
@@ -122,7 +126,7 @@ class Usuario(SQLModel, table=True):
     matricula: str = Field(max_length=20, unique=True, index=True)
     email: str = Field(max_length=100, unique=True, index=True)
     senha: str = Field(max_length=255)
-    data_cadastro: datetime = Field(default_factory=datetime.utcnow)
+    data_cadastro: datetime = Field(default_factory=utc_now)
 
 
 class ConfiguracaoAlerta(SQLModel, table=True):

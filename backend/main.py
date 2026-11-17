@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, status, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -395,7 +395,7 @@ async def post_leitura(req: LeituraCreate, db: Session = Depends(get_session)):
     leitura = Leitura(
         id_sensor=req.id_sensor,
         valor=req.valor,
-        data_hora=datetime.utcnow()
+        data_hora=datetime.now(timezone.utc)
     )
     db.add(leitura)
     db.commit()
@@ -421,7 +421,7 @@ async def post_leitura(req: LeituraCreate, db: Session = Depends(get_session)):
 
 @app.get("/api/historico")
 def get_historico(periodo: str = "24h", sensor_tipo: Optional[TipoSensor] = None, db: Session = Depends(get_session)):
-    agora = datetime.utcnow()
+    agora = datetime.now(timezone.utc)
     
     # Definir limite temporal
     if periodo == "24h":
@@ -558,7 +558,7 @@ async def post_movimento(req: MovimentoCreate, db: Session = Depends(get_session
         angulo_horizontal=ang_h,
         angulo_vertical=ang_v,
         direcao_luz=req.direcao_luz or "Nenhuma",
-        data_hora=datetime.utcnow()
+        data_hora=datetime.now(timezone.utc)
     )
     db.add(movimento)
     db.commit()

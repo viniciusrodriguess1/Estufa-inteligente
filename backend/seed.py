@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import random
 from sqlmodel import Session, select, delete
 from database import engine, create_db_and_tables
@@ -118,7 +118,7 @@ def seed_db():
         # 6. Se ainda não houver leituras, gera leituras iniciais para os 2 LDRs
         tem_leitura = session.exec(select(Leitura).limit(1)).first()
         if not tem_leitura:
-            agora = datetime.utcnow()
+            agora = datetime.now(timezone.utc)
             leituras_a_inserir = []
             for hora_atras in range(12, -1, -1):
                 data_leitura = agora - timedelta(hours=hora_atras)
