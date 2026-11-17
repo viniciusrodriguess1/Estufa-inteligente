@@ -46,20 +46,34 @@ def garantir_apenas_dois_ldrs(session: Session, id_microcontrolador: int):
             session.add(s)
     session.commit()
 
-    # Cria os que faltarem até completar 2 sensores LDR
+    # Cria os que faltarem até completar 2 sensores LDR (forçando IDs 1 e 2)
     while len(sensores_ldr) < 2:
-        novo_nome = nomes_desejados[len(sensores_ldr)]
-        novo_sensor = Sensor(
-            nome=novo_nome,
-            tipo=TipoSensor.LUMINOSIDADE,
-            unidade="Lux",
-            status=StatusSensor.ATIVO,
-            id_microcontrolador=id_microcontrolador,
-        )
-        session.add(novo_sensor)
-        session.commit()
-        session.refresh(novo_sensor)
-        sensores_ldr.append(novo_sensor)
+        idx_alvo = len(sensores_ldr)
+        id_desejado = idx_alvo + 1
+        novo_nome = nomes_desejados[idx_alvo]
+        existente_id = session.get(Sensor, id_desejado)
+        if existente_id:
+            existente_id.nome = novo_nome
+            existente_id.tipo = TipoSensor.LUMINOSIDADE
+            existente_id.unidade = "Lux"
+            existente_id.status = StatusSensor.ATIVO
+            session.add(existente_id)
+            session.commit()
+            session.refresh(existente_id)
+            sensores_ldr.append(existente_id)
+        else:
+            novo_sensor = Sensor(
+                id_sensor=id_desejado,
+                nome=novo_nome,
+                tipo=TipoSensor.LUMINOSIDADE,
+                unidade="Lux",
+                status=StatusSensor.ATIVO,
+                id_microcontrolador=id_microcontrolador,
+            )
+            session.add(novo_sensor)
+            session.commit()
+            session.refresh(novo_sensor)
+            sensores_ldr.append(novo_sensor)
 
     return sensores_ldr
 

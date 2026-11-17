@@ -362,7 +362,29 @@ def list_sensores(tipo: Optional[TipoSensor] = None, status: Optional[StatusSens
 async def post_leitura(req: LeituraCreate, db: Session = Depends(get_session)):
     sensor = db.get(Sensor, req.id_sensor)
     if not sensor:
-        raise HTTPException(status_code=404, detail="Sensor não encontrado.")
+        # Auto-provisiona o sensor LDR (ID 1 = Esquerdo, ID 2 = Direito) para nunca retornar 404
+        micro = db.exec(select(Microcontrolador)).first()
+        id_micro = micro.id_microcontrolador if micro else 1
+        nome_padrao = "Sensor LDR Esquerdo" if req.id_sensor == 1 else (
+            "Sensor LDR Direito" if req.id_sensor == 2 else f"Sensor LDR #{req.id_sensor}"
+        )
+        sensor = Sensor(
+            id_sensor=req.id_sensor,
+            nome=nome_padrao,
+            tipo=TipoSensor.LUMINOSIDADE,
+            unidade="Lux",
+            status=StatusSensor.ATIVO,
+            id_microcontrolador=id_micro
+        )
+        db.add(sensor)
+        db.commit()
+        db.refresh(sensor)
+
+    # Atualiza cache de telemetria quando recebe ID 1 (Esquerdo) ou ID 2 (Direito)
+    if req.id_sensor == 1 or "esq" in (sensor.nome or "").lower():
+        ULTIMA_TELEMETRIA_PLANTA["ldr_esquerdo"] = req.valor
+    elif req.id_sensor == 2 or "dir" in (sensor.nome or "").lower():
+        ULTIMA_TELEMETRIA_PLANTA["ldr_direito"] = req.valor
     
     leitura = Leitura(
         id_sensor=req.id_sensor,
@@ -491,7 +513,20 @@ def get_planta_movimentos(limite: int = 15, db: Session = Depends(get_session)):
 async def post_movimento(req: MovimentoCreate, db: Session = Depends(get_session)):
     planta = db.get(PlantaRobotica, req.id_planta)
     if not planta:
-        raise HTTPException(status_code=404, detail="Planta não encontrada.")
+        planta = db.exec(select(PlantaRobotica)).first()
+    if not planta:
+        estufa = db.exec(select(Estufa)).first()
+        planta = PlantaRobotica(
+            id_planta=req.id_planta,
+            nome="Mimosa Biomimética v1",
+            angulo_horizontal=90.0,
+            angulo_vertical=0.0,
+            status=StatusPlanta.ATIVA,
+            id_estufa=estufa.id_estufa if estufa else 1
+        )
+        db.add(planta)
+        db.commit()
+        db.refresh(planta)
     
     ang_h = req.posicao_servo if req.posicao_servo is not None else (req.angulo_horizontal if req.angulo_horizontal is not None else planta.angulo_horizontal)
     ang_v = req.posicao_haste if req.posicao_haste is not None else (req.angulo_vertical if req.angulo_vertical is not None else planta.angulo_vertical)
