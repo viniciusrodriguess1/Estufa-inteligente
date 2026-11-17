@@ -5,6 +5,8 @@
 #include <ESP32Servo.h>
 
 // --- CONFIGURAÇÕES DE WI-FI E API RENDER ---
+// DICA: Evite acentos ou caracteres especiais no nome do Wi-Fi (no iPhone, vá em
+// Ajustes > Geral > Sobre > Nome e use um nome simples, ex: "iphone" e senha de 8+ números/letras)
 const char* ssid = "NOME_DA_SUA_REDE_WIFI";
 const char* password = "SENHA_DA_SUA_REDE_WIFI";
 const char* serverUrl = "https://estufa-inteligente.onrender.com";
@@ -54,15 +56,33 @@ bool servoEmMovimento = false;
 unsigned long tempoPrint = 0;
 const long intervaloPrint = 500; // Imprime na tela a cada meio segundo
 
-// Protótipo da Task de Telemetria (Core 0) para não travar o AccelStepper no loop()
+// Protótipos
+void conectarWiFi();
 void taskTelemetriaHTTP(void* parameter);
 void postRequest(const String& endpoint, const String& jsonPayload);
 
 void setup() {
   Serial.begin(115200);
+  delay(500);
+
+  // IMPORTANTE: Desliga as bobinas do motor de passo durante a conexão Wi-Fi
+  // para evitar queda de tensão (brownout) na porta USB!
+  pinMode(pinoIN1, OUTPUT);
+  pinMode(pinoIN2, OUTPUT);
+  pinMode(pinoIN3, OUTPUT);
+  pinMode(pinoIN4, OUTPUT);
+  digitalWrite(pinoIN1, LOW);
+  digitalWrite(pinoIN2, LOW);
+  digitalWrite(pinoIN3, LOW);
+  digitalWrite(pinoIN4, LOW);
+
   pinMode(pinoLDREsq, INPUT);
   pinMode(pinoLDRDir, INPUT);
 
+  // 1. Conecta ao Wi-Fi ANTES de acionar servo e motor de passo
+  conectarWiFi();
+
+  // 2. Inicializa Servo e Motor de Passo após o Wi-Fi estabilizar
   ESP32PWM::allocateTimer(0);
   ESP32PWM::allocateTimer(1);
   ESP32PWM::allocateTimer(2);
@@ -71,7 +91,7 @@ void setup() {
   meuServo.attach(pinoServo, 500, 2400);
 
   meuServo.write(posicaoServoAtual);
-  delay(1000);
+  delay(500);
 
   meuMotor.setMaxSpeed(250.0);
   meuMotor.setAcceleration(100.0);
@@ -79,23 +99,61 @@ void setup() {
   mediaEsq = analogRead(pinoLDREsq);
   mediaDir = analogRead(pinoLDRDir);
 
-  // Inicia conexão Wi-Fi em modo estação
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
-  Serial.print("Iniciando conexao Wi-Fi com ");
-  Serial.println(ssid);
-
-  // Cria uma Task no Núcleo 0 dedicada ao envio HTTP/HTTPS para o Render.
-  // Isso garante que o meuMotor.run() e o servo no Núcleo 1 (loop) NUNCA engasguem!
+  // 3. Cria Task no Núcleo 0 dedicada ao envio HTTP/HTTPS para o Render
   xTaskCreatePinnedToCore(
-    taskTelemetriaHTTP,   // Função da task
-    "TaskTelemetriaHTTP", // Nome da task
-    8192,                 // Tamanho da stack (necessário para SSL/HTTPS)
-    NULL,                 // Parâmetro
-    1,                    // Prioridade baixa para não interferir no controle
-    NULL,                 // Handle
-    0                     // Pina no Core 0 (o loop roda no Core 1)
+    taskTelemetriaHTTP,
+    "TaskTelemetriaHTTP",
+    8192,
+    NULL,
+    1,
+    NULL,
+    0
   );
+}
+
+void conectarWiFi() {
+  Serial.println("\n==========================================");
+  Serial.println("   INICIANDODIAGNOSTICO E CONEXAO WI-FI   ");
+  Serial.println("==========================================");
+
+  WiFi.persistent(false);
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false); // Evita desconexões em roteadores e iPhone Hotspot
+  delay(200);
+
+  // Escaneia redes 2.4GHz visíveis para ajudar no diagnóstico pelo Monitor Serial
+  Serial.println("Buscando redes Wi-Fi 2.4GHz proximas...");
+  int numRedes = WiFi.scanNetworks();
+  if (numRedes <= 0) {
+    Serial.println("[AVISO] Nenhuma rede 2.4GHz encontrada no alcance!");
+  } else {
+    Serial.printf("Foram encontradas %d redes 2.4GHz:\n", numRedes);
+    for (int i = 0; i < numRedes && i < 10; i++) {
+      Serial.printf("  %d) SSID: \"%s\" (%d dBm)\n", i + 1, WiFi.SSID(i).c_str(), WiFi.RSSI(i));
+    }
+  }
+
+  Serial.printf("\nTentando conectar em: \"%s\"\n", ssid);
+  WiFi.begin(ssid, password);
+
+  int tentativas = 0;
+  while (WiFi.status() != WL_CONNECTED && tentativas < 30) {
+    delay(500);
+    Serial.print(".");
+    tentativas++;
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n[OK] WiFi Conectado com Sucesso!");
+    Serial.print("[OK] Endereco IP da ESP32: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.printf("\n[ERRO] Falha ao conectar (Status code: %d).\n", WiFi.status());
+    Serial.println("Verifique se o nome (SSID) e a senha estao identicos a lista acima.");
+    Serial.println("A ESP32 continuara tentando reconectar em segundo plano...");
+  }
+  Serial.println("==========================================\n");
 }
 
 void loop() {
@@ -156,8 +214,9 @@ void loop() {
   // 4. PAINEL DE TELEMETRIA: Mostra os bastidores
   if (tempoAtual - tempoPrint >= intervaloPrint) {
     tempoPrint = tempoAtual;
-    Serial.printf("LDR Esq: %.0f | LDR Dir: %.0f | Stepper Alvo: %ld | Stepper Atual: %ld | Servo: %d | Estado: %d\n",
-                  mediaEsq, mediaDir, meuMotor.targetPosition(), meuMotor.currentPosition(), posicaoServoAtual, estadoPlanta);
+    Serial.printf("WiFi: %s | LDR Esq: %.0f | LDR Dir: %.0f | Stepper: %ld/%ld | Servo: %d | Estado: %d\n",
+                  (WiFi.status() == WL_CONNECTED ? "ONLINE" : "OFFLINE"),
+                  mediaEsq, mediaDir, meuMotor.currentPosition(), meuMotor.targetPosition(), posicaoServoAtual, estadoPlanta);
   }
 }
 
@@ -166,7 +225,7 @@ void loop() {
 // ============================================================================
 void taskTelemetriaHTTP(void* parameter) {
   unsigned long ultimoEnvio = 0;
-  unsigned long ultimaTentativaWifi = 0;
+  unsigned long ultimaTentativaWifi = millis();
 
   for (;;) {
     unsigned long agora = millis();
@@ -175,7 +234,7 @@ void taskTelemetriaHTTP(void* parameter) {
     if (WiFi.status() != WL_CONNECTED) {
       if (agora - ultimaTentativaWifi >= 15000) {
         ultimaTentativaWifi = agora;
-        Serial.println("[WiFi] Reconectando ao Wi-Fi...");
+        Serial.println("[WiFi] Tentando reconectar ao Wi-Fi em segundo plano...");
         WiFi.disconnect();
         WiFi.begin(ssid, password);
       }
@@ -216,7 +275,6 @@ void taskTelemetriaHTTP(void* parameter) {
       postRequest("leituras", payloadLdrDir);
 
       // 2. Envia o pacote completo de telemetria da Planta Robótica
-      // Inclui os campos padrão do banco e as variáveis exatas da interface científica PIBIC
       String payloadPlanta = "{\"id_planta\":" + String(ID_PLANTA) +
                              ",\"angulo_horizontal\":" + String(posServo) +
                              ",\"angulo_vertical\":" + String(posHaste) +
