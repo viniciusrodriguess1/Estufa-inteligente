@@ -2,9 +2,23 @@ import os
 from sqlmodel import create_engine, SQLModel, Session
 from sqlalchemy import event
 
-db_url = os.getenv("DATABASE_URL", "sqlite:///./pibic.db")
+db_url = os.getenv("DATABASE_URL", "sqlite:///./pibic.db").strip()
+
+# Normaliza prefixos de URL do PostgreSQL (postgres://, postgresql+psycopg://, etc.)
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
+elif db_url.startswith("postgres+psycopg://"):
+    db_url = db_url.replace("postgres+psycopg://", "postgresql+psycopg://", 1)
+
+if db_url.startswith("postgresql"):
+    # Se psycopg2 estiver disponível, força o driver psycopg2 caso psycopg (v3) não esteja instalado
+    try:
+        import psycopg  # noqa: F401
+    except ImportError:
+        if "postgresql+psycopg://" in db_url:
+            db_url = db_url.replace("postgresql+psycopg://", "postgresql+psycopg2://", 1)
+        elif db_url.startswith("postgresql://"):
+            db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
 DATABASE_URL = db_url
 
