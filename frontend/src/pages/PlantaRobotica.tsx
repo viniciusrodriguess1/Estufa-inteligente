@@ -157,8 +157,10 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
   );
   // Mapeia 40°..140° (centro 90°) para rotação do ponteiro (-50° a +50°)
   const rotacaoPonteiro = anguloServoClamped - 90;
-  // Mapeia o ângulo do servo para inclinação visual proporcional do modelo 2D
-  const rotacaoModelo2D = (anguloServoClamped - 90) * 0.65;
+  // Inclinação visual e deslocamento de dentes das engrenagens (coroa do cilindro e pinhão do servo)
+  const rotacaoModelo2D = (anguloServoClamped - 90) * 0.45;
+  const deslocamentoDentesCoroa = (anguloServoClamped - 90) * 0.6;
+  const deslocamentoDentesPinhao = -deslocamentoDentesCoroa;
 
   // Preparação de dados históricos para o gráfico científico
   const graphData = [...movimentosData]
@@ -240,7 +242,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
       ===================================================================== */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* -------------------------------------------------------------------
-            GÊMEO DIGITAL 2D DA ESTRUTURA FÍSICA DO ROBÔ (5 COLUNAS EM DESTAQUE)
+            GÊMEO DIGITAL 2D DA ESTRUTURA MECÂNICA REAL (5 COLUNAS EM DESTAQUE)
         ------------------------------------------------------------------- */}
         <section className="lg:col-span-5 bg-slate-900/90 border border-slate-800 rounded-xl p-6 flex flex-col justify-between shadow-lg">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
@@ -248,15 +250,15 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
               <Layers size={20} className="text-emerald-400" />
               <div>
                 <h2 className="text-base font-bold text-white uppercase tracking-wider">
-                  Gêmeo Digital 2D em Tempo Real
+                  Gêmeo Digital 2D Mecânico
                 </h2>
                 <p className="text-xs text-slate-400 font-mono">
-                  Cinemática: Base + Rosca Sem-Fim + Cabeça em T
+                  Base Vazada (Stepper) + Engrenagens (Servo) + Haste/T
                 </p>
               </div>
             </div>
             <span className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
-              MODELO 2D LIVE
+              2D LIVE
             </span>
           </div>
 
@@ -264,123 +266,172 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
           <div className="robot-stage relative w-full rounded-xl border border-slate-800 overflow-hidden flex flex-col items-center justify-end select-none">
             {/* HUD de Telemetria no Canto Superior do Modelo 2D */}
             <div className="absolute top-3 left-3 bg-slate-900/90 border border-slate-700 rounded-lg px-3 py-2 font-mono text-[11px] space-y-1 z-20">
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-slate-400">ALTURA HASTE:</span>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-slate-400">ELEVAÇÃO HASTE:</span>
                 <strong className="text-emerald-400">
                   {percentualAltura.toFixed(1)}% ({posicao_haste} p)
                 </strong>
               </div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-slate-400">SERVO (ROTAÇÃO):</span>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-slate-400">ENGRENAGEM SERVO:</span>
                 <strong className="text-cyan-400">{posicao_servo}°</strong>
               </div>
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-slate-400">OLHOS LDR:</span>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-slate-400">LDRs (E | D):</span>
                 <strong className="text-yellow-400">
-                  E:{ldr_esquerdo} | D:{ldr_direito}
+                  {ldr_esquerdo} | {ldr_direito}
                 </strong>
               </div>
             </div>
 
-            {/* Legenda Angular Superior */}
-            <div className="absolute top-3 right-3 bg-slate-900/90 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-[10px] text-slate-400 z-20">
-              40° &larr; 90° &rarr; 140°
-            </div>
-
-            {/* Linha Guia Vertical Central */}
+            {/* Linha Guia de Centro */}
             <div className="guide-line-vertical" />
 
             {/* ===============================================================
-                CONJUNTO MÓVEL ACIMA DA BASE (GIRA COM O SERVOMOTOR)
-                Inclui: Cabeça Branca em T + Olhos LDR + Tronco Verde c/ Rosca
+                ESTRUTURA MECÂNICA COMPLETA (CONJUNTO SUPERIOR + BASE VAZADA)
             =============================================================== */}
-            <div
-              className="robot-upper-assembly"
-              style={{
-                transform: `rotate(${rotacaoModelo2D}deg)`,
-                transformOrigin: "bottom center",
-              }}
-            >
-              {/* 1. A CABEÇA (SUPORTE EM FORMATO DE "T" NA COR BRANCA) */}
-              <div className="robot-t-head-wrapper">
-                {/* Barra Horizontal Superior do "T" com os 2 Olhos (LDRs) */}
-                <div className="robot-t-bar">
-                  {/* Olho Esquerdo (ldr_esquerdo) */}
-                  <div className="ldr-eye-holder">
-                    <div
-                      className={`ldr-eye-circle ${
-                        isLdrEsqAtivo
-                          ? "bg-yellow-500 shadow-glow-yellow border-orange-300"
-                          : "bg-gray-700 border-slate-600"
-                      }`}
-                      title={`LDR Esquerdo: ${ldr_esquerdo}`}
-                    >
-                      <span className="ldr-eye-pupil" />
+            <div className="mechanical-assembly">
+              {/* -------------------------------------------------------------
+                  CONJUNTO ROTATIVO ACIONADO PELA ENGRENAGEM DO SERVO
+                  (Cilindro Verde + Retângulo Marrom Interno + Suporte T Branco)
+              ------------------------------------------------------------- */}
+              <div
+                className="rotating-column-group"
+                style={{
+                  transform: `rotate(${rotacaoModelo2D}deg)`,
+                  transformOrigin: "bottom center",
+                }}
+              >
+                {/* Curso Total de Elevação da Haste Marrom e Cabeça em T */}
+                <div className="elevation-track">
+                  {/* SUPORTE EM "T" BRANCO (COLADO NO TOPO DO RETÂNGULO MARROM) */}
+                  <div className="t-support-white">
+                    <div className="t-horizontal-bar">
+                      {/* Olho Esquerdo (ldr_esquerdo) */}
+                      <div className="ldr-eye-box">
+                        <div
+                          className={`ldr-eye-lens ${
+                            isLdrEsqAtivo
+                              ? "bg-yellow-500 shadow-glow-yellow border-orange-300"
+                              : "bg-gray-700 border-slate-600"
+                          }`}
+                          title={`LDR Esquerdo: ${ldr_esquerdo}`}
+                        >
+                          <span className="ldr-pupil-dot" />
+                        </div>
+                        <span className="ldr-side-label">LDR ESQ</span>
+                      </div>
+
+                      <span className="t-head-center-text">SUPORTE T</span>
+
+                      {/* Olho Direito (ldr_direito) */}
+                      <div className="ldr-eye-box">
+                        <div
+                          className={`ldr-eye-lens ${
+                            isLdrDirAtivo
+                              ? "bg-yellow-500 shadow-glow-yellow border-orange-300"
+                              : "bg-gray-700 border-slate-600"
+                          }`}
+                          title={`LDR Direito: ${ldr_direito}`}
+                        >
+                          <span className="ldr-pupil-dot" />
+                        </div>
+                        <span className="ldr-side-label">LDR DIR</span>
+                      </div>
                     </div>
-                    <span className="ldr-eye-tag">ESQ</span>
+                    {/* Haste Vertical do T Branco colada no Retângulo Marrom */}
+                    <div className="t-vertical-stem" />
                   </div>
 
-                  <span className="t-bar-label">SUPORTE T</span>
-
-                  {/* Olho Direito (ldr_direito) */}
-                  <div className="ldr-eye-holder">
-                    <div
-                      className={`ldr-eye-circle ${
-                        isLdrDirAtivo
-                          ? "bg-yellow-500 shadow-glow-yellow border-orange-300"
-                          : "bg-gray-700 border-slate-600"
-                      }`}
-                      title={`LDR Direito: ${ldr_direito}`}
-                    >
-                      <span className="ldr-eye-pupil" />
-                    </div>
-                    <span className="ldr-eye-tag">DIR</span>
+                  {/* RETÂNGULO MARROM INTERNO (ACOPLADO À ROSCA DE SUBIDA E DESCIDA) */}
+                  <div
+                    className="inner-brown-plunger"
+                    style={{
+                      height: `${28 + (percentualAltura * 0.72)}%`,
+                    }}
+                  >
+                    <span className="plunger-label">ÊMBOLO</span>
                   </div>
                 </div>
 
-                {/* Pescoço Vertical do "T" Branco */}
-                <div className="robot-t-neck" />
+                {/* CILINDRO VERDE EXTERNO (COM CORTE PARCIAL MOSTRANDO O RETÂNGULO MARROM E A ROSCA) */}
+                <div className="outer-green-cylinder">
+                  {/* Rosca Sem-Fim Vertical atravessando o cilindro desde o Motor de Passo */}
+                  <div className="vertical-leadscrew" />
+                  <span className="cylinder-vertical-tag">CILINDRO VERDE</span>
+                </div>
+
+                {/* ENGRENAGEM DA BASE DO CILINDRO VERDE (COROA) */}
+                <div className="cylinder-base-gear">
+                  <div
+                    className="gear-teeth-strip"
+                    style={{
+                      backgroundPositionX: `${deslocamentoDentesCoroa}px`,
+                    }}
+                  />
+                  <span className="gear-caption">ENGRENAGEM CILINDRO</span>
+                </div>
               </div>
 
-              {/* 2. O TRONCO (HASTE VERDE DINÂMICA + ROSCA VERTICAL DO STEPPER) */}
-              <div
-                className="robot-green-stem"
-                style={{
-                  height: `${percentualAltura}%`,
-                }}
-              >
-                {/* Textura de Rosca Sem-Fim no Eixo Central */}
-                <div className="robot-leadscrew-thread" />
-              </div>
-            </div>
+              {/* -------------------------------------------------------------
+                  CONJUNTO INFERIOR FIXO:
+                  BASE MARROM VAZADA (COM STEPPER DENTRO) + SERVO LATERAL C/ ENGRENAGEM
+              ------------------------------------------------------------- */}
+              <div className="lower-fixed-chassis">
+                {/* SERVOMOTOR LATERAL + ENGRENAGEM PINHÃO (ENGATADA NA ENGRENAGEM DO CILINDRO) */}
+                <div className="side-servo-assembly">
+                  {/* Engrenagem do Servomotor (Pinhão) */}
+                  <div className="servo-pinion-gear">
+                    <div
+                      className="gear-teeth-strip pinion-teeth"
+                      style={{
+                        backgroundPositionX: `${deslocamentoDentesPinhao}px`,
+                      }}
+                    />
+                    <span className="pinion-caption">PINHÃO</span>
+                  </div>
+                  {/* Eixo do Servo */}
+                  <div className="servo-shaft-neck" />
+                  {/* Corpo do Servomotor SG90 Lateral */}
+                  <div className="servo-motor-body">
+                    <span className="servo-body-title">SERVO SG90</span>
+                    <span className="servo-body-angle">{posicao_servo}°</span>
+                  </div>
+                </div>
 
-            {/* Eixo / Acoplamento do Servomotor no Topo da Base */}
-            <div className="robot-servo-coupler">
-              <span>SERVO {posicao_servo}°</span>
-            </div>
+                {/* A BASE MARROM VAZADA (MOSTRANDO O MOTOR DE PASSO LÁ DENTRO) */}
+                <div className="hollow-brown-base">
+                  {/* Moldura Vazada mostrando o fundo e o Motor de Passo */}
+                  <div className="hollow-base-window">
+                    {/* Eixo saindo do Motor de Passo para a Rosca Vertical */}
+                    <div className="stepper-coupler-shaft" />
 
-            {/* 3. A BASE (BLOCO / CAIXA NA COR MARROM NA PARTE INFERIOR) */}
-            <div className="robot-brown-base">
-              <div className="robot-base-inner">
-                <span className="base-title">BASE ESTRUTURAL</span>
-                <span className="base-sub">
-                  Stepper 28BYJ-48 + Servo SG90
-                </span>
+                    {/* Motor de Passo 28BYJ-48 visível dentro da Base Vazada */}
+                    <div className="stepper-motor-unit">
+                      <div className="stepper-ears" />
+                      <span className="stepper-title">MOTOR DE PASSO</span>
+                      <span className="stepper-sub">
+                        28BYJ-48 ({posicao_haste} p)
+                      </span>
+                    </div>
+                  </div>
+                  <span className="base-frame-label">BASE MARROM VAZADA</span>
+                </div>
               </div>
             </div>
           </div>
 
           <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
             <span>
-              Elevação:{" "}
+              Êmbolo Marrom:{" "}
               <strong className="text-emerald-400">
                 {percentualAltura.toFixed(1)}%
               </strong>
             </span>
             <span>
-              Inclinação 2D:{" "}
+              Transmissão Servo:{" "}
               <strong className="text-cyan-400">
-                {rotacaoPonteiro > 0 ? `+${rotacaoPonteiro}` : rotacaoPonteiro}°
+                {posicao_servo}° ({rotacaoPonteiro > 0 ? `+${rotacaoPonteiro}` : rotacaoPonteiro}°)
               </strong>
             </span>
           </div>
@@ -758,7 +809,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
       </div>
 
       {/* =====================================================================
-          ESTILOS DO MODELO 2D E UTILITÁRIOS TAILWIND SCOPED
+          ESTILOS DO MODELO 2D MECÂNICO E UTILITÁRIOS TAILWIND SCOPED
       ===================================================================== */}
       <style>{`
         .telemetry-wrapper {
@@ -775,87 +826,114 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
 
         /* Palco do Modelo 2D */
         .robot-stage {
-          height: 460px;
+          height: 490px;
           background-color: #060b16;
           background-image:
             linear-gradient(to right, rgba(56, 189, 248, 0.05) 1px, transparent 1px),
             linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
           background-size: 28px 28px;
           box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.75);
-          padding-bottom: 18px;
+          padding-bottom: 14px;
         }
 
         .guide-line-vertical {
           position: absolute;
-          top: 16px;
-          bottom: 18px;
+          top: 14px;
+          bottom: 14px;
           left: 50%;
           transform: translateX(-50%);
-          border-left: 1px dashed rgba(56, 189, 248, 0.22);
+          border-left: 1px dashed rgba(56, 189, 248, 0.2);
           pointer-events: none;
         }
 
-        /* Conjunto rotativo (Haste Verde + Cabeça em T Branca) */
-        .robot-upper-assembly {
-          height: 255px;
-          width: 220px;
+        .mechanical-assembly {
           display: flex;
           flex-direction: column;
-          justify-content: flex-end;
           align-items: center;
+          justify-content: flex-end;
+          position: relative;
+          width: 100%;
+          height: 400px;
+        }
+
+        /* =====================================================================
+           CONJUNTO ROTATIVO SUPERIOR (Gira em torno da base do cilindro verde)
+        ===================================================================== */
+        .rotating-column-group {
+          position: relative;
+          width: 210px;
+          height: 290px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-end;
           transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
           z-index: 10;
         }
 
-        /* A Cabeça: Suporte em "T" na cor branca */
-        .robot-t-head-wrapper {
+        /* Trilha de elevação do Retângulo Marrom + Suporte em T Branco */
+        .elevation-track {
+          position: absolute;
+          bottom: 22px; /* Parte de dentro do cilindro verde logo acima da engrenagem */
+          width: 180px;
+          height: 258px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-end;
+          z-index: 12;
+          pointer-events: none;
+        }
+
+        /* SUPORTE EM "T" BRANCO (Colado no topo do retângulo marrom) */
+        .t-support-white {
           display: flex;
           flex-direction: column;
           align-items: center;
           flex-shrink: 0;
+          z-index: 15;
         }
 
-        .robot-t-bar {
-          width: 156px;
-          height: 36px;
+        .t-horizontal-bar {
+          width: 158px;
+          height: 34px;
           background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
           border: 2px solid #cbd5e1;
-          border-radius: 10px;
+          border-radius: 9px;
           display: flex;
           align-items: center;
           justify-content: space-between;
           padding: 0 8px;
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
-          position: relative;
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
         }
 
-        .t-bar-label {
+        .t-head-center-text {
           font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-          font-size: 9px;
+          font-size: 8.5px;
           font-weight: 800;
           color: #334155;
-          letter-spacing: 0.06em;
+          letter-spacing: 0.05em;
         }
 
-        .robot-t-neck {
-          width: 30px;
-          height: 22px;
+        .t-vertical-stem {
+          width: 26px;
+          height: 16px;
           background: linear-gradient(90deg, #e2e8f0 0%, #ffffff 50%, #cbd5e1 100%);
           border-left: 2px solid #cbd5e1;
           border-right: 2px solid #cbd5e1;
         }
 
-        /* Os Olhos (LDRs na Cabeça Branca em T) */
-        .ldr-eye-holder {
+        /* Olhos LDR na peça branca em T */
+        .ldr-eye-box {
           display: flex;
           flex-direction: column;
           align-items: center;
           position: relative;
         }
 
-        .ldr-eye-circle {
-          width: 24px;
-          height: 24px;
+        .ldr-eye-lens {
+          width: 23px;
+          height: 23px;
           border-radius: 9999px;
           border-width: 2px;
           border-style: solid;
@@ -865,112 +943,336 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
           transition: all 0.35s ease;
         }
 
-        .ldr-eye-pupil {
-          width: 8px;
-          height: 8px;
+        .ldr-pupil-dot {
+          width: 7px;
+          height: 7px;
           border-radius: 9999px;
-          background-color: rgba(15, 23, 42, 0.75);
+          background-color: rgba(15, 23, 42, 0.8);
         }
 
-        .ldr-eye-tag {
+        .ldr-side-label {
           position: absolute;
-          top: -15px;
+          top: -14px;
+          white-space: nowrap;
           font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-          font-size: 8px;
+          font-size: 7.5px;
           font-weight: 700;
           color: #94a3b8;
         }
 
-        /* O Tronco: Cilindro/Retângulo vertical verde com altura dinâmica */
-        .robot-green-stem {
-          width: 34px;
-          min-height: 26px;
-          max-height: 190px;
-          background: linear-gradient(90deg, #15803d 0%, #22c55e 50%, #166534 100%);
-          border: 2px solid #4ade80;
-          border-radius: 6px 6px 2px 2px;
+        /* RETÂNGULO MARROM INTERNO (Dentro do cilindro verde, acoplado à rosca) */
+        .inner-brown-plunger {
+          width: 28px;
+          min-height: 45px;
+          max-height: 200px;
+          background: linear-gradient(90deg, #78350f 0%, #b45309 50%, #78350f 100%);
+          border: 2px solid #f59e0b;
+          border-radius: 3px 3px 0 0;
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          padding-top: 6px;
+          transition: height 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+          box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
+          z-index: 11;
+        }
+
+        .plunger-label {
+          writing-mode: vertical-rl;
+          text-orientation: mixed;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: 7.5px;
+          font-weight: 800;
+          color: #fef3c7;
+          letter-spacing: 0.08em;
+          opacity: 0.9;
+        }
+
+        /* CILINDRO VERDE EXTERNO (Com visão em corte para exibir o retângulo marrom e a rosca) */
+        .outer-green-cylinder {
+          width: 54px;
+          height: 145px;
+          background: linear-gradient(
+            90deg,
+            rgba(21, 128, 61, 0.82) 0%,
+            rgba(34, 197, 94, 0.32) 30%,
+            rgba(34, 197, 94, 0.22) 70%,
+            rgba(21, 128, 61, 0.82) 100%
+          );
+          border: 2.5px solid #22c55e;
+          border-bottom: none;
+          border-radius: 8px 8px 0 0;
+          position: relative;
           display: flex;
           align-items: center;
           justify-content: center;
-          overflow: hidden;
-          transition: height 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-          box-shadow: 0 0 18px rgba(34, 197, 94, 0.3);
+          box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
+          z-index: 13;
         }
 
-        /* Fuso roscado interno representando o motor de passo */
-        .robot-leadscrew-thread {
+        /* Rosca Vertical (Fuso sem-fim) ligada ao Motor de Passo */
+        .vertical-leadscrew {
           width: 10px;
           height: 100%;
           background: repeating-linear-gradient(
-            -30deg,
-            #94a3b8,
-            #94a3b8 3px,
-            #334155 3px,
-            #334155 6px
+            -28deg,
+            #e2e8f0,
+            #e2e8f0 3px,
+            #475569 3px,
+            #475569 6px
           );
-          border-left: 1px solid rgba(15, 23, 42, 0.6);
-          border-right: 1px solid rgba(15, 23, 42, 0.6);
-          opacity: 0.85;
+          border-left: 1px solid #334155;
+          border-right: 1px solid #334155;
+          opacity: 0.95;
+          z-index: 14;
         }
 
-        /* Acoplamento do Servomotor entre a Base Marrom e a Haste */
-        .robot-servo-coupler {
-          width: 68px;
-          height: 18px;
-          background: linear-gradient(90deg, #1e293b 0%, #334155 50%, #1e293b 100%);
-          border: 1px solid #64748b;
-          border-radius: 4px 4px 0 0;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+        .cylinder-vertical-tag {
+          position: absolute;
+          left: -18px;
+          writing-mode: vertical-rl;
           font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-          font-size: 9px;
+          font-size: 7.5px;
           font-weight: 700;
-          color: #38bdf8;
-          z-index: 12;
+          color: #4ade80;
+          letter-spacing: 0.06em;
         }
 
-        /* A Base: Bloco/Caixa na cor marrom na parte inferior */
-        .robot-brown-base {
-          width: 190px;
-          height: 76px;
-          background: linear-gradient(180deg, #854d0e 0%, #713f12 55%, #422006 100%);
-          border: 2px solid #a16207;
-          border-radius: 10px 10px 6px 6px;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.65), inset 0 2px 4px rgba(254, 240, 138, 0.15);
+        /* ENGRENAGEM DA BASE DO CILINDRO VERDE (COROA) */
+        .cylinder-base-gear {
+          width: 82px;
+          height: 22px;
+          background: linear-gradient(180deg, #16a34a 0%, #14532d 100%);
+          border: 2px solid #4ade80;
+          border-radius: 4px;
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 8px;
-          z-index: 12;
+          position: relative;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+          z-index: 15;
         }
 
-        .robot-base-inner {
-          width: 100%;
-          height: 100%;
-          border: 1px dashed rgba(254, 240, 138, 0.3);
+        .gear-teeth-strip {
+          width: 92%;
+          height: 8px;
+          background: repeating-linear-gradient(
+            90deg,
+            #dcfce7 0px,
+            #dcfce7 5px,
+            #14532d 5px,
+            #14532d 10px
+          );
+          border-radius: 2px;
+          transition: background-position 0.4s ease-out;
+        }
+
+        .gear-caption {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: 6.5px;
+          font-weight: 800;
+          color: #bbf7d0;
+          margin-top: 1px;
+          letter-spacing: 0.04em;
+        }
+
+        /* =====================================================================
+           CHASSI INFERIOR: BASE MARROM VAZADA (C/ STEPPER) + SERVO LATERAL
+        ===================================================================== */
+        .lower-fixed-chassis {
+          position: relative;
+          width: 260px;
+          height: 98px;
+          display: flex;
+          align-items: flex-start;
+          justify-content: center;
+          z-index: 14;
+        }
+
+        /* SERVOMOTOR LATERAL + ENGRENAGEM (Engatada na engrenagem da base do cilindro) */
+        .side-servo-assembly {
+          position: absolute;
+          right: 6px;
+          top: -22px; /* Alinha a engrenagem do servo exatamente na altura da engrenagem do cilindro verde */
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          z-index: 16;
+        }
+
+        .servo-pinion-gear {
+          width: 48px;
+          height: 22px;
+          background: linear-gradient(180deg, #0284c7 0%, #1e3a8a 100%);
+          border: 2px solid #38bdf8;
+          border-radius: 4px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          box-shadow: -3px 0 10px rgba(56, 189, 248, 0.35);
+        }
+
+        .pinion-teeth {
+          background: repeating-linear-gradient(
+            90deg,
+            #e0f2fe 0px,
+            #e0f2fe 5px,
+            #1e3a8a 5px,
+            #1e3a8a 10px
+          );
+        }
+
+        .pinion-caption {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: 6.5px;
+          font-weight: 800;
+          color: #bae6fd;
+          margin-top: 1px;
+        }
+
+        .servo-shaft-neck {
+          width: 10px;
+          height: 12px;
+          background: linear-gradient(90deg, #94a3b8, #f8fafc, #64748b);
+          border-left: 1px solid #475569;
+          border-right: 1px solid #475569;
+        }
+
+        .servo-motor-body {
+          width: 56px;
+          height: 54px;
+          background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 60%, #1e3a8a 100%);
+          border: 2px solid #60a5fa;
           border-radius: 6px;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          background-color: rgba(28, 25, 23, 0.35);
+          box-shadow: 0 6px 14px rgba(0, 0, 0, 0.55);
+          padding: 4px;
         }
 
-        .base-title {
+        .servo-body-title {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: 7.5px;
+          font-weight: 800;
+          color: #dbeafe;
+        }
+
+        .servo-body-angle {
           font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
           font-size: 11px;
           font-weight: 800;
-          color: #fef08a;
-          letter-spacing: 0.06em;
+          color: #fde047;
+          margin-top: 2px;
         }
 
-        .base-sub {
+        /* BASE MARROM VAZADA (Permite ver o Motor de Passo lá dentro) */
+        .hollow-brown-base {
+          width: 164px;
+          height: 96px;
+          background: linear-gradient(180deg, #78350f 0%, #451a03 100%);
+          border: 3px solid #b45309;
+          border-radius: 8px;
+          padding: 8px 12px 18px 12px;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 12px 26px rgba(0, 0, 0, 0.7);
+        }
+
+        /* Janela Vazada da Base Marrom */
+        .hollow-base-window {
+          width: 100%;
+          height: 100%;
+          background-color: #060b16;
+          background-image:
+            linear-gradient(to right, rgba(56, 189, 248, 0.07) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(56, 189, 248, 0.07) 1px, transparent 1px);
+          background-size: 14px 14px;
+          border: 2px solid #92400e;
+          border-radius: 5px;
+          box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.85);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-end;
+          position: relative;
+          overflow: hidden;
+        }
+
+        /* Eixo conectando o Motor de Passo à Rosca Vertical */
+        .stepper-coupler-shaft {
+          width: 12px;
+          height: 16px;
+          background: repeating-linear-gradient(
+            -28deg,
+            #e2e8f0,
+            #e2e8f0 3px,
+            #475569 3px,
+            #475569 6px
+          );
+          border-left: 1px solid #94a3b8;
+          border-right: 1px solid #94a3b8;
+        }
+
+        /* Corpo do Motor de Passo visível dentro da Base Vazada */
+        .stepper-motor-unit {
+          width: 104px;
+          height: 46px;
+          background: linear-gradient(180deg, #cbd5e1 0%, #64748b 45%, #334155 100%);
+          border: 2px solid #e2e8f0;
+          border-radius: 8px 8px 4px 4px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          margin-bottom: 4px;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+        }
+
+        .stepper-ears {
+          position: absolute;
+          top: 8px;
+          width: 118px;
+          height: 8px;
+          background-color: #94a3b8;
+          border: 1px solid #cbd5e1;
+          border-radius: 4px;
+          z-index: -1;
+        }
+
+        .stepper-title {
           font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-          font-size: 9px;
-          color: #fde047;
-          opacity: 0.85;
+          font-size: 8px;
+          font-weight: 800;
+          color: #0f172a;
+          background-color: rgba(255, 255, 255, 0.75);
+          padding: 0 4px;
+          border-radius: 2px;
+        }
+
+        .stepper-sub {
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: 7.5px;
+          font-weight: 700;
+          color: #fef08a;
           margin-top: 2px;
+        }
+
+        .base-frame-label {
+          position: absolute;
+          bottom: 2px;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+          font-size: 8px;
+          font-weight: 800;
+          color: #fde68a;
+          letter-spacing: 0.06em;
         }
 
         /* Camada Utilitária Tailwind Scoped */
