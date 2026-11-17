@@ -171,11 +171,16 @@ function App() {
         if (message.event === "novo_movimento") {
           const movimento = message.data;
           
-          // 1. Atualizar ângulos atuais na planta
+          // 1. Atualizar ângulos e telemetria atuais na planta
           setPlanta((prev: any) => prev ? {
             ...prev,
             angulo_horizontal: movimento.angulo_horizontal,
             angulo_vertical: movimento.angulo_vertical,
+            posicao_servo: movimento.posicao_servo ?? movimento.angulo_horizontal,
+            posicao_haste: movimento.posicao_haste ?? movimento.angulo_vertical,
+            ldr_esquerdo: movimento.ldr_esquerdo ?? prev.ldr_esquerdo,
+            ldr_direito: movimento.ldr_direito ?? prev.ldr_direito,
+            estado: movimento.estado ?? prev.estado,
             direcao_luz: movimento.direcao_luz
           } : null);
 

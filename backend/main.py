@@ -106,9 +106,23 @@ class LeituraCreate(BaseModel):
 
 class MovimentoCreate(BaseModel):
     id_planta: int
-    angulo_horizontal: float
-    angulo_vertical: float
-    direcao_luz: str
+    angulo_horizontal: Optional[float] = None
+    angulo_vertical: Optional[float] = None
+    direcao_luz: Optional[str] = "Nenhuma"
+    estado: Optional[int] = None
+    ldr_esquerdo: Optional[float] = None
+    ldr_direito: Optional[float] = None
+    posicao_haste: Optional[float] = None
+    posicao_servo: Optional[float] = None
+
+# Cache em memória para telemetria de alta resolução enviada pela ESP32
+ULTIMA_TELEMETRIA_PLANTA = {
+    "estado": None,
+    "ldr_esquerdo": None,
+    "ldr_direito": None,
+    "posicao_haste": None,
+    "posicao_servo": None,
+}
 
 class SensorCreate(BaseModel):
     nome: str
@@ -478,6 +492,11 @@ def get_planta_status(db: Session = Depends(get_session)):
         "nome": planta.nome,
         "angulo_horizontal": planta.angulo_horizontal,
         "angulo_vertical": planta.angulo_vertical,
+        "posicao_servo": ULTIMA_TELEMETRIA_PLANTA["posicao_servo"] if ULTIMA_TELEMETRIA_PLANTA["posicao_servo"] is not None else planta.angulo_horizontal,
+        "posicao_haste": ULTIMA_TELEMETRIA_PLANTA["posicao_haste"] if ULTIMA_TELEMETRIA_PLANTA["posicao_haste"] is not None else planta.angulo_vertical,
+        "ldr_esquerdo": ULTIMA_TELEMETRIA_PLANTA["ldr_esquerdo"],
+        "ldr_direito": ULTIMA_TELEMETRIA_PLANTA["ldr_direito"],
+        "estado": ULTIMA_TELEMETRIA_PLANTA["estado"],
         "status": planta.status,
         "status_servomotores": "Ativo" if planta.status == StatusPlanta.ATIVA else "Inativo",
         "direcao_luz": ultimo_movimento.direcao_luz if ultimo_movimento else "Nenhuma",
@@ -499,17 +518,30 @@ async def post_movimento(req: MovimentoCreate, db: Session = Depends(get_session
     if not planta:
         raise HTTPException(status_code=404, detail="Planta não encontrada.")
     
+    ang_h = req.posicao_servo if req.posicao_servo is not None else (req.angulo_horizontal if req.angulo_horizontal is not None else planta.angulo_horizontal)
+    ang_v = req.posicao_haste if req.posicao_haste is not None else (req.angulo_vertical if req.angulo_vertical is not None else planta.angulo_vertical)
+
+    # Atualizar cache de telemetria científica da ESP32
+    if req.estado is not None:
+        ULTIMA_TELEMETRIA_PLANTA["estado"] = req.estado
+    if req.ldr_esquerdo is not None:
+        ULTIMA_TELEMETRIA_PLANTA["ldr_esquerdo"] = req.ldr_esquerdo
+    if req.ldr_direito is not None:
+        ULTIMA_TELEMETRIA_PLANTA["ldr_direito"] = req.ldr_direito
+    ULTIMA_TELEMETRIA_PLANTA["posicao_servo"] = ang_h
+    ULTIMA_TELEMETRIA_PLANTA["posicao_haste"] = ang_v
+
     # Atualizar ângulos atuais na planta
-    planta.angulo_horizontal = req.angulo_horizontal
-    planta.angulo_vertical = req.angulo_vertical
+    planta.angulo_horizontal = ang_h
+    planta.angulo_vertical = ang_v
     db.add(planta)
     
     # Criar registro de movimento
     movimento = MovimentoPlanta(
         id_planta=req.id_planta,
-        angulo_horizontal=req.angulo_horizontal,
-        angulo_vertical=req.angulo_vertical,
-        direcao_luz=req.direcao_luz,
+        angulo_horizontal=ang_h,
+        angulo_vertical=ang_v,
+        direcao_luz=req.direcao_luz or "Nenhuma",
         data_hora=datetime.utcnow()
     )
     db.add(movimento)
@@ -524,6 +556,11 @@ async def post_movimento(req: MovimentoCreate, db: Session = Depends(get_session
             "id_planta": movimento.id_planta,
             "angulo_horizontal": movimento.angulo_horizontal,
             "angulo_vertical": movimento.angulo_vertical,
+            "posicao_servo": ang_h,
+            "posicao_haste": ang_v,
+            "ldr_esquerdo": ULTIMA_TELEMETRIA_PLANTA["ldr_esquerdo"],
+            "ldr_direito": ULTIMA_TELEMETRIA_PLANTA["ldr_direito"],
+            "estado": ULTIMA_TELEMETRIA_PLANTA["estado"],
             "direcao_luz": movimento.direcao_luz,
             "data_hora": movimento.data_hora.isoformat()
         }
