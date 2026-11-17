@@ -154,6 +154,7 @@ function App() {
             const novaLeitura = {
               id_leitura: leitura.id_leitura,
               id_sensor: leitura.id_sensor,
+              nome: leitura.nome,
               tipo: leitura.tipo,
               valor: leitura.valor,
               data_hora: leitura.data_hora,

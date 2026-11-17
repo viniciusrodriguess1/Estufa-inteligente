@@ -1,23 +1,21 @@
 import React from "react";
-import { 
-  Thermometer, 
-  Droplet, 
-  Wind, 
-  Sun, 
-  Gauge, 
+import {
+  Sun,
+  Gauge,
   AlertTriangle,
   Compass,
-  ArrowRight
+  ArrowRight,
+  Activity
 } from "lucide-react";
-import { 
-  ResponsiveContainer, 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend 
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend
 } from "recharts";
 
 interface DashboardProps {
@@ -29,15 +27,6 @@ interface DashboardProps {
   setCurrentPage: (page: string) => void;
 }
 
-const sensorLabelMap: { [key: string]: string } = {
-  "Temperatura": "Temperatura",
-  "UmidadeSolo": "Umidade do Solo",
-  "UmidadeAr": "Umidade do Ar",
-  "Luminosidade": "Luminosidade",
-  "CO2": "CO2",
-  "Oxigenio": "Oxigênio"
-};
-
 export const Dashboard: React.FC<DashboardProps> = ({
   estufaInfo,
   sensores,
@@ -46,46 +35,61 @@ export const Dashboard: React.FC<DashboardProps> = ({
   alerts,
   setCurrentPage
 }) => {
-  
-  // Encontrar o valor de cada tipo de sensor
-  const getSensorValue = (tipo: string) => {
-    const sensor = sensores.find(s => s.tipo === tipo);
-    return sensor ? { valor: sensor.valor_atual, unidade: sensor.unidade } : { valor: null, unidade: "" };
-  };
+  // Busca os 2 sensores LDR cadastrados
+  const sensoresLdr = sensores.filter((s) => s.tipo === "Luminosidade");
+  const ldrEsquerdoSensor =
+    sensoresLdr.find((s) => s.nome?.toLowerCase().includes("esq")) ||
+    sensoresLdr[0];
+  const ldrDireitoSensor =
+    sensoresLdr.find((s) => s.nome?.toLowerCase().includes("dir")) ||
+    sensoresLdr[1] ||
+    sensoresLdr[0];
 
-  const temp = getSensorValue("Temperatura");
-  const umidSolo = getSensorValue("UmidadeSolo");
-  const umidAr = getSensorValue("UmidadeAr");
-  const luz = getSensorValue("Luminosidade");
-  const co2 = getSensorValue("CO2");
-  const o2 = getSensorValue("Oxigenio");
+  const valLdrEsq =
+    planta?.ldr_esquerdo ?? ldrEsquerdoSensor?.valor_atual ?? null;
+  const valLdrDir =
+    planta?.ldr_direito ?? ldrDireitoSensor?.valor_atual ?? null;
 
-  // Pivotar dados de 24h para o gráfico Recharts
+  const deltaLuz =
+    valLdrEsq !== null && valLdrDir !== null
+      ? Math.abs(Number(valLdrEsq) - Number(valLdrDir))
+      : null;
+
+  // Pivotar dados de 24h dos 2 sensores LDR para o gráfico Recharts
   const processGraphData = () => {
     const grouped: { [key: string]: any } = {};
-    
-    // Filtra e organiza
-    leituras24h.forEach((leitura) => {
-      let rawStr = typeof leitura.data_hora === 'string' ? leitura.data_hora : "";
-      if (rawStr && !rawStr.endsWith('Z') && !rawStr.includes('+')) {
-        rawStr += 'Z';
-      }
-      const date = rawStr ? new Date(rawStr) : new Date(leitura.data_hora);
-      // Formata como "HH:MM"
-      const hourStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      
-      if (!grouped[hourStr]) {
-        grouped[hourStr] = { 
-          time: hourStr,
-          timestamp: date.getTime()
-        };
-      }
-      
-      const label = sensorLabelMap[leitura.tipo] || leitura.tipo;
-      grouped[hourStr][label] = leitura.valor;
-    });
 
-    // Ordenar cronologicamente
+    leituras24h
+      .filter((l) => l.tipo === "Luminosidade")
+      .forEach((leitura) => {
+        let rawStr = typeof leitura.data_hora === "string" ? leitura.data_hora : "";
+        if (rawStr && !rawStr.endsWith("Z") && !rawStr.includes("+")) {
+          rawStr += "Z";
+        }
+        const date = rawStr ? new Date(rawStr) : new Date(leitura.data_hora);
+        const hourStr = date.toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit"
+        });
+
+        if (!grouped[hourStr]) {
+          grouped[hourStr] = {
+            time: hourStr,
+            timestamp: date.getTime()
+          };
+        }
+
+        const isDireito =
+          leitura.nome?.toLowerCase().includes("dir") ||
+          leitura.id_sensor === ldrDireitoSensor?.id_sensor;
+
+        if (isDireito && ldrDireitoSensor?.id_sensor !== ldrEsquerdoSensor?.id_sensor) {
+          grouped[hourStr]["LDR Direito"] = leitura.valor;
+        } else {
+          grouped[hourStr]["LDR Esquerdo"] = leitura.valor;
+        }
+      });
+
     return Object.values(grouped)
       .sort((a: any, b: any) => a.timestamp - b.timestamp)
       .map(({ timestamp, ...rest }) => rest);
@@ -99,140 +103,182 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <div className="dashboard-welcome glass-card">
         <div className="welcome-text">
           <h2>Painel Geral de Controle</h2>
-          <p>{estufaInfo?.nome || "Estufa Inteligente"} &bull; {estufaInfo?.localizacao || "Laboratório"}</p>
-          <p className="welcome-desc">Ambiente IoT experimental de apoio didático para demonstração de parâmetros de cultivo e simulação física de reações e crescimentos vegetais via ESP32.</p>
+          <p>
+            {estufaInfo?.nome || "Estufa Inteligente"} &bull;{" "}
+            {estufaInfo?.localizacao || "Laboratório"}
+          </p>
+          <p className="welcome-desc">
+            Ambiente IoT experimental com par de fotorreceptores (LDR Esquerdo e
+            LDR Direito) para rastreamento luminoso e controle biomimético via
+            ESP32.
+          </p>
         </div>
         <div className="welcome-status">
-          <span className={`badge ${estufaInfo?.status_operacional === "Online" ? "badge-success" : "badge-danger"}`}>
+          <span
+            className={`badge ${
+              estufaInfo?.status_operacional === "Online"
+                ? "badge-success"
+                : "badge-danger"
+            }`}
+          >
             SISTEMA {estufaInfo?.status_operacional || "OFFLINE"}
           </span>
         </div>
       </div>
 
-      {/* Grid de Cards dos Sensores */}
+      {/* Grid de Cards: Apenas os 2 Sensores LDR e Gradiente Luminoso */}
       <div className="grid-cards">
-        {/* Card Temperatura */}
-        <div className="sensor-card glass-card border-temp">
-          <div className="card-header">
-            <span className="card-title">Temperatura</span>
-            <Thermometer className="icon-temp" size={24} />
-          </div>
-          <div className="card-body">
-            <span className="card-value">{temp.valor !== null ? temp.valor : "--"}</span>
-            <span className="card-unit">{temp.unidade}</span>
-          </div>
-          <div className="card-footer">
-            <span className="footer-status text-success">&bull; Operando Normal</span>
-          </div>
-        </div>
-
-        {/* Card Umidade do Solo */}
-        <div className="sensor-card glass-card border-soil">
-          <div className="card-header">
-            <span className="card-title">Umidade do Solo</span>
-            <Droplet className="icon-soil" size={24} />
-          </div>
-          <div className="card-body">
-            <span className="card-value">{umidSolo.valor !== null ? umidSolo.valor : "--"}</span>
-            <span className="card-unit">{umidSolo.unidade}</span>
-          </div>
-          <div className="card-footer">
-            <span className="footer-status text-success">&bull; Solo Adequado</span>
-          </div>
-        </div>
-
-        {/* Card Umidade do Ar */}
-        <div className="sensor-card glass-card border-air">
-          <div className="card-header">
-            <span className="card-title">Umidade do Ar</span>
-            <Wind className="icon-air" size={24} />
-          </div>
-          <div className="card-body">
-            <span className="card-value">{umidAr.valor !== null ? umidAr.valor : "--"}</span>
-            <span className="card-unit">{umidAr.unidade}</span>
-          </div>
-          <div className="card-footer">
-            <span className="footer-status text-success">&bull; Umidade Ideal</span>
-          </div>
-        </div>
-
-        {/* Card Luminosidade */}
+        {/* Card LDR Esquerdo */}
         <div className="sensor-card glass-card border-light">
           <div className="card-header">
-            <span className="card-title">Luminosidade</span>
+            <span className="card-title">
+              {ldrEsquerdoSensor?.nome || "Sensor LDR Esquerdo"}
+            </span>
             <Sun className="icon-light" size={24} />
           </div>
           <div className="card-body">
-            <span className="card-value">{luz.valor !== null ? luz.valor : "--"}</span>
-            <span className="card-unit">{luz.unidade}</span>
+            <span className="card-value">
+              {valLdrEsq !== null ? valLdrEsq : "--"}
+            </span>
+            <span className="card-unit">
+              {ldrEsquerdoSensor?.unidade || "Lux"}
+            </span>
           </div>
           <div className="card-footer">
-            <span className="footer-status text-success">&bull; Luz Estável</span>
+            <span className="footer-status text-success">
+              &bull;{" "}
+              {Number(valLdrEsq) > 1000
+                ? "Alta Luminosidade (> 1000)"
+                : "Em Monitoramento"}
+            </span>
           </div>
         </div>
 
-        {/* Card Gases (CO2 / O2) */}
-        <div className="sensor-card glass-card border-gas">
+        {/* Card LDR Direito */}
+        <div className="sensor-card glass-card border-light">
           <div className="card-header">
-            <span className="card-title">Gases (CO2 / O2)</span>
-            <Gauge className="icon-gas" size={24} />
+            <span className="card-title">
+              {ldrDireitoSensor?.nome || "Sensor LDR Direito"}
+            </span>
+            <Sun className="icon-light" size={24} />
           </div>
-          <div className="card-body multi-body">
-            <div className="gases-sub">
-              <span className="sub-label">CO₂:</span>
-              <span className="sub-value">{co2.valor !== null ? co2.valor : "--"}</span>
-              <span className="sub-unit">{co2.unidade}</span>
-            </div>
-            <div className="gases-sub border-l">
-              <span className="sub-label">O₂:</span>
-              <span className="sub-value">{o2.valor !== null ? o2.valor : "--"}</span>
-              <span className="sub-unit">{o2.unidade}</span>
-            </div>
+          <div className="card-body">
+            <span className="card-value">
+              {valLdrDir !== null ? valLdrDir : "--"}
+            </span>
+            <span className="card-unit">
+              {ldrDireitoSensor?.unidade || "Lux"}
+            </span>
           </div>
           <div className="card-footer">
-            <span className="footer-status text-success">&bull; Atmosfera Saudável</span>
+            <span className="footer-status text-success">
+              &bull;{" "}
+              {Number(valLdrDir) > 1000
+                ? "Alta Luminosidade (> 1000)"
+                : "Em Monitoramento"}
+            </span>
+          </div>
+        </div>
+
+        {/* Card Diferencial / Gradiente entre os 2 LDRs */}
+        <div className="sensor-card glass-card border-air">
+          <div className="card-header">
+            <span className="card-title">Diferencial Fototrópico (&Delta; LDR)</span>
+            <Gauge className="icon-air" size={24} />
+          </div>
+          <div className="card-body">
+            <span className="card-value">
+              {deltaLuz !== null ? deltaLuz : "--"}
+            </span>
+            <span className="card-unit">Lux</span>
+          </div>
+          <div className="card-footer">
+            <span className="footer-status text-success">
+              &bull; Direção: {planta?.direcao_luz || "Centro"}
+            </span>
           </div>
         </div>
       </div>
 
       {/* Grid Gráficos e Seções Laterais */}
       <div className="grid-dashboard">
-        {/* Gráfico 24 Horas */}
+        {/* Gráfico 24 Horas dos 2 LDRs */}
         <div className="graph-section glass-card">
           <div className="section-header">
-            <h3>Monitoramento das Últimas 24 Horas</h3>
-            <span className="section-desc">Dados agregados em tempo real</span>
+            <h3>Monitoramento dos Sensores LDR (Últimas 24 Horas)</h3>
+            <span className="section-desc">
+              Comparativo de luminosidade entre LDR Esquerdo e LDR Direito
+            </span>
           </div>
           <div className="graph-container">
             {graphData.length > 0 ? (
               <ResponsiveContainer width="100%" height={320}>
-                <AreaChart data={graphData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <AreaChart
+                  data={graphData}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                >
                   <defs>
-                    <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                    <linearGradient id="colorLdrEsq" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#eab308" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#eab308" stopOpacity={0} />
                     </linearGradient>
-                    <linearGradient id="colorSoil" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                    </linearGradient>
-                    <linearGradient id="colorLight" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#eab308" stopOpacity={0.2}/>
-                      <stop offset="95%" stopColor="#eab308" stopOpacity={0}/>
+                    <linearGradient id="colorLdrDir" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="time" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px' }} />
-                  <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-                  <Area type="monotone" dataKey="Temperatura" stroke="#ef4444" fillOpacity={1} fill="url(#colorTemp)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="Umidade do Solo" stroke="#3b82f6" fillOpacity={1} fill="url(#colorSoil)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="Luminosidade" stroke="#eab308" fillOpacity={1} fill="url(#colorLight)" strokeWidth={2} />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#f1f5f9"
+                  />
+                  <XAxis
+                    dataKey="time"
+                    tick={{ fontSize: 11, fill: "#64748b" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "#64748b" }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "#fff",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: "8px",
+                      fontSize: "12px"
+                    }}
+                  />
+                  <Legend
+                    verticalAlign="top"
+                    height={36}
+                    iconType="circle"
+                    wrapperStyle={{ fontSize: "12px" }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="LDR Esquerdo"
+                    stroke="#eab308"
+                    fillOpacity={1}
+                    fill="url(#colorLdrEsq)"
+                    strokeWidth={2}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="LDR Direito"
+                    stroke="#10b981"
+                    fillOpacity={1}
+                    fill="url(#colorLdrDir)"
+                    strokeWidth={2}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="no-data">Carregando dados históricos de 24h...</div>
+              <div className="no-data">
+                Carregando leituras históricas dos sensores LDR...
+              </div>
             )}
           </div>
         </div>
@@ -249,37 +295,49 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <Compass className="compass-icon rotate-slow" size={32} />
               <div className="angles-data">
                 <div className="angle-item">
-                  <span className="angle-label">Heliotropismo (H):</span>
-                  <span className="angle-val">{planta?.angulo_horizontal ?? "--"}°</span>
+                  <span className="angle-label">Servomotor (Pan):</span>
+                  <span className="angle-val">
+                    {planta?.posicao_servo ?? planta?.angulo_horizontal ?? "--"}°
+                  </span>
                 </div>
                 <div className="angle-item">
-                  <span className="angle-label">Ganho de Elevação (V):</span>
-                  <span className="angle-val">{planta?.angulo_vertical ?? "--"} mm</span>
+                  <span className="angle-label">Posição da Haste:</span>
+                  <span className="angle-val">
+                    {planta?.posicao_haste ?? planta?.angulo_vertical ?? "--"}{" "}
+                    passos
+                  </span>
                 </div>
                 <div className="angle-item">
                   <span className="angle-label">Seguindo Luz:</span>
-                  <span className="angle-val badge badge-info" style={{ textTransform: 'none' }}>
+                  <span
+                    className="angle-val badge badge-info"
+                    style={{ textTransform: "none" }}
+                  >
                     {planta?.direcao_luz || "Nenhuma"}
                   </span>
                 </div>
               </div>
             </div>
             <button onClick={() => setCurrentPage("planta")} className="btn-link">
-              <span>Painel da Planta</span>
+              <span>Abrir Telemetria Científica</span>
               <ArrowRight size={16} />
             </button>
           </div>
 
-          {/* Alertas Recentes */}
+          {/* Resumo dos Sensores LDR */}
           <div className="alerts-summary glass-card">
             <div className="section-header">
-              <h3>Anomalias Recentes</h3>
-              <span className="section-desc">Últimos registros críticos</span>
+              <h3>Status dos Fotoreceptores</h3>
+              <span className="section-desc">Configuração ativa na ESP32</span>
             </div>
             <div className="alerts-content">
               {alerts.length === 0 ? (
                 <div className="alert-empty-box">
-                  <p>Nenhum alerta crítico ativo no momento.</p>
+                  <Activity
+                    size={18}
+                    style={{ color: "#10b981", margin: "0 auto 0.35rem" }}
+                  />
+                  <p>2 Sensores LDR ativos e sincronizados com a planta robótica.</p>
                 </div>
               ) : (
                 <div className="alert-dashboard-list">
@@ -288,7 +346,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <AlertTriangle size={16} className="danger-icon" />
                       <div className="alert-db-details">
                         <p>{a.mensagem}</p>
-                        <span>{new Date(a.data_hora).toLocaleTimeString()}</span>
+                        <span>
+                          {new Date(a.data_hora).toLocaleTimeString()}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -325,17 +385,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
           margin-top: 0.15rem;
         }
 
-        /* Cores customizadas dos cards de sensores */
         .sensor-card {
           position: relative;
           overflow: hidden;
         }
 
-        .border-temp { border-top: 4px solid #ef4444; }
-        .border-soil { border-top: 4px solid #3b82f6; }
         .border-air { border-top: 4px solid #10b981; }
         .border-light { border-top: 4px solid #f59e0b; }
-        .border-gas { border-top: 4px solid #8b5cf6; }
 
         .card-header {
           display: flex;
@@ -352,11 +408,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
           letter-spacing: 0.02em;
         }
 
-        .icon-temp { color: #ef4444; }
-        .icon-soil { color: #3b82f6; }
         .icon-air { color: #10b981; }
         .icon-light { color: #f59e0b; }
-        .icon-gas { color: #8b5cf6; }
 
         .card-body {
           display: flex;
@@ -378,43 +431,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           color: var(--text-muted);
         }
 
-        .multi-body {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-top: 0.5rem;
-          margin-bottom: 0.75rem;
-        }
-
-        .gases-sub {
-          display: flex;
-          flex-direction: column;
-          flex: 1;
-        }
-
-        .border-l {
-          border-left: 1px solid var(--border-color);
-          padding-left: 1rem;
-        }
-
-        .sub-label {
-          font-size: 0.75rem;
-          font-weight: 600;
-          color: var(--text-muted);
-        }
-
-        .sub-value {
-          font-size: 1.4rem;
-          font-weight: 700;
-          color: var(--text-main);
-          margin-top: 0.1rem;
-        }
-
-        .sub-unit {
-          font-size: 0.8rem;
-          color: var(--text-muted);
-        }
-
         .card-footer {
           border-top: 1px solid #f1f5f9;
           padding-top: 0.5rem;
@@ -425,7 +441,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           font-weight: 500;
         }
 
-        /* Graph & Side Sections */
         .section-header {
           margin-bottom: 1.5rem;
         }

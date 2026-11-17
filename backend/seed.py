@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 import random
-from sqlmodel import Session, select
+from sqlmodel import Session, select, delete
 from database import engine, create_db_and_tables
 from models import (
     Estufa, Microcontrolador, Sensor, Leitura, PlantaRobotica,
@@ -9,17 +9,74 @@ from models import (
 )
 from auth import get_password_hash
 
+
+def garantir_apenas_dois_ldrs(session: Session, id_microcontrolador: int):
+    """Remove sensores antigos (Temp, Umidade, CO2, O2) e garante apenas LDR Esquerdo e LDR Direito."""
+    sensores_nao_ldr = session.exec(
+        select(Sensor).where(Sensor.tipo != TipoSensor.LUMINOSIDADE)
+    ).all()
+
+    for s in sensores_nao_ldr:
+        session.exec(delete(Leitura).where(Leitura.id_sensor == s.id_sensor))
+        session.delete(s)
+    session.commit()
+
+    sensores_ldr = session.exec(
+        select(Sensor)
+        .where(Sensor.tipo == TipoSensor.LUMINOSIDADE)
+        .order_by(Sensor.id_sensor.asc())
+    ).all()
+
+    nomes_desejados = ["Sensor LDR Esquerdo", "Sensor LDR Direito"]
+
+    # Se houver mais de 2 LDRs, remove os excedentes
+    if len(sensores_ldr) > 2:
+        for s_extra in sensores_ldr[2:]:
+            session.exec(delete(Leitura).where(Leitura.id_sensor == s_extra.id_sensor))
+            session.delete(s_extra)
+        session.commit()
+        sensores_ldr = sensores_ldr[:2]
+
+    # Atualiza os nomes dos existentes
+    for idx, s in enumerate(sensores_ldr):
+        if s.nome != nomes_desejados[idx]:
+            s.nome = nomes_desejados[idx]
+            s.unidade = "Lux"
+            s.status = StatusSensor.ATIVO
+            session.add(s)
+    session.commit()
+
+    # Cria os que faltarem até completar 2 sensores LDR
+    while len(sensores_ldr) < 2:
+        novo_nome = nomes_desejados[len(sensores_ldr)]
+        novo_sensor = Sensor(
+            nome=novo_nome,
+            tipo=TipoSensor.LUMINOSIDADE,
+            unidade="Lux",
+            status=StatusSensor.ATIVO,
+            id_microcontrolador=id_microcontrolador,
+        )
+        session.add(novo_sensor)
+        session.commit()
+        session.refresh(novo_sensor)
+        sensores_ldr.append(novo_sensor)
+
+    return sensores_ldr
+
+
 def seed_db():
     create_db_and_tables()
-    
+
     with Session(engine) as session:
-        # Check if database is already seeded
         existing_estufa = session.exec(select(Estufa)).first()
         if existing_estufa:
-            print("Banco de dados já contém dados. Pulando semeadura (seed).")
+            micro = session.exec(select(Microcontrolador)).first()
+            if micro:
+                garantir_apenas_dois_ldrs(session, micro.id_microcontrolador)
+            print("Banco de dados atualizado para manter apenas os 2 sensores LDR.")
             return
 
-        print("Iniciando semeadura do banco de dados...")
+        print("Iniciando semeadura do banco de dados (Apenas 2 Sensores LDR)...")
 
         # 1. Criar Usuário Admin
         admin = Usuario(
@@ -34,7 +91,7 @@ def seed_db():
         estufa = Estufa(
             nome="Estufa Inteligente",
             localizacao="Laboratorio Evante",
-            descricao="Estufa automatizada experimental integrando sensores ambientais e robótica biomimética para monitoramento e controle de plantio inteligente."
+            descricao="Estufa experimental integrando sensores de luminosidade (LDRs) e planta robótica biomimética para demonstração de fototropismo e heliotropismo via ESP32."
         )
         session.add(estufa)
         session.commit()
@@ -51,36 +108,14 @@ def seed_db():
         session.commit()
         session.refresh(esp32)
 
-        # 4. Criar Sensores
-        sensores_info = [
-            {"nome": "Sensor de Luminosidade LDR", "tipo": TipoSensor.LUMINOSIDADE, "unidade": "Lux"},
-            {"nome": "Sensor de Umidade do Solo Higrômetro", "tipo": TipoSensor.UMIDADE_SOLO, "unidade": "%"},
-            {"nome": "Sensor de Temperatura DHT22", "tipo": TipoSensor.TEMPERATURA, "unidade": "°C"},
-            {"nome": "Sensor de Umidade do Ar DHT22", "tipo": TipoSensor.UMIDADE_AR, "unidade": "%"},
-            {"nome": "Sensor de Dióxido de Carbono MQ135", "tipo": TipoSensor.CO2, "unidade": "ppm"},
-            {"nome": "Sensor de Oxigênio O2-A2", "tipo": TipoSensor.OXIGENIO, "unidade": "%"},
-        ]
-
-        sensores = []
-        for s_info in sensores_info:
-            sensor = Sensor(
-                nome=s_info["nome"],
-                tipo=s_info["tipo"],
-                unidade=s_info["unidade"],
-                status=StatusSensor.ATIVO,
-                id_microcontrolador=esp32.id_microcontrolador
-            )
-            session.add(sensor)
-            sensores.append(sensor)
-        session.commit()
-        for s in sensores:
-            session.refresh(s)
+        # 4. Criar Apenas os 2 Sensores LDR
+        sensores = garantir_apenas_dois_ldrs(session, esp32.id_microcontrolador)
 
         # 5. Criar Planta Robótica
         planta = PlantaRobotica(
             nome="Mimosa Biomimética v1",
-            angulo_horizontal=120.0,
-            angulo_vertical=45.0,
+            angulo_horizontal=90.0,
+            angulo_vertical=0.0,
             status=StatusPlanta.ATIVA,
             id_estufa=estufa.id_estufa
         )
@@ -88,45 +123,18 @@ def seed_db():
         session.commit()
         session.refresh(planta)
 
-        # 6. Gerar Leituras Históricas (Últimas 24 Horas)
+        # 6. Gerar Leituras Históricas (Últimas 24 Horas) para os 2 LDRs
         agora = datetime.utcnow()
         leituras_a_inserir = []
-        
-        # Parâmetros de base para as flutuações dos sensores
-        sensor_baselines = {
-            TipoSensor.LUMINOSIDADE: (500, 200),  # média, variação
-            TipoSensor.UMIDADE_SOLO: (65, 5),
-            TipoSensor.TEMPERATURA: (24, 4),
-            TipoSensor.UMIDADE_AR: (55, 10),
-            TipoSensor.CO2: (450, 50),
-            TipoSensor.OXIGENIO: (20.9, 0.2)
-        }
 
         for hora_atras in range(24, -1, -1):
             data_leitura = agora - timedelta(hours=hora_atras)
-            # Fazer a luminosidade variar com base na hora do dia (dia/noite simulado)
             hora = data_leitura.hour
-            dia_fator = 1.0 if 6 <= hora <= 18 else 0.05
-            
-            for sensor in sensores:
-                base, var = sensor_baselines[sensor.tipo]
-                
-                if sensor.tipo == TipoSensor.LUMINOSIDADE:
-                    valor = base * dia_fator + random.uniform(-50, 50) * dia_fator
-                    valor = max(0, valor)
-                elif sensor.tipo == TipoSensor.TEMPERATURA:
-                    # Temperatura sobe no meio do dia
-                    temp_fator = (12 - abs(hora - 14)) / 12  # pico às 14h
-                    valor = base + (var * temp_fator) + random.uniform(-1, 1)
-                else:
-                    valor = base + random.uniform(-var, var)
+            dia_fator = 1.0 if 6 <= hora <= 18 else 0.15
 
-                # Arredondar valor de acordo com a precisão típica
-                if sensor.tipo == TipoSensor.OXIGENIO:
-                    valor = round(valor, 2)
-                else:
-                    valor = round(valor, 1)
-
+            for idx, sensor in enumerate(sensores):
+                base = 1200 if idx == 0 else 1100
+                valor = round(max(0.0, base * dia_fator + random.uniform(-120, 120) * dia_fator), 1)
                 leitura = Leitura(
                     id_sensor=sensor.id_sensor,
                     valor=valor,
@@ -138,20 +146,19 @@ def seed_db():
 
         # 7. Gerar Histórico de Movimento da Planta (Últimas 24 Horas)
         movimentos_a_inserir = []
-        direcoes = ["Norte", "Nordeste", "Leste", "Sudeste", "Sul", "Sudoeste", "Oeste", "Noroeste"]
-        
+        direcoes = ["Esquerda (140°)", "Centro (90°)", "Direita (40°)"]
+
         for hora_atras in range(24, -1, -2):
             data_movimento = agora - timedelta(hours=hora_atras)
-            
-            # Movimentação simulada
-            angulo_h = 90.0 + random.uniform(-45, 45)
-            angulo_v = 30.0 + random.uniform(-20, 20)
-            direcao = random.choice(direcoes) if data_movimento.hour in range(6, 18) else "Nenhuma"
-            
+            em_luz = data_movimento.hour in range(6, 18)
+            angulo_h = random.choice([40.0, 90.0, 140.0]) if em_luz else 90.0
+            angulo_v = 40960.0 if em_luz else 0.0
+            direcao = random.choice(direcoes) if em_luz else "Em Repouso"
+
             movimento = MovimentoPlanta(
                 id_planta=planta.id_planta,
-                angulo_horizontal=round(angulo_h, 1),
-                angulo_vertical=round(angulo_v, 1),
+                angulo_horizontal=angulo_h,
+                angulo_vertical=angulo_v,
                 direcao_luz=direcao,
                 data_hora=data_movimento
             )
@@ -159,8 +166,9 @@ def seed_db():
 
         session.add_all(movimentos_a_inserir)
         session.commit()
-        
-        print("Semeadura concluída com sucesso!")
+
+        print("Semeadura concluída com sucesso (2 sensores LDR configurados)!")
+
 
 if __name__ == "__main__":
     seed_db()

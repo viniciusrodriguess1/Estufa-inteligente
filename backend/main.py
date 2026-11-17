@@ -379,6 +379,7 @@ async def post_leitura(req: LeituraCreate, db: Session = Depends(get_session)):
         "data": {
             "id_leitura": leitura.id_leitura,
             "id_sensor": leitura.id_sensor,
+            "nome": sensor.nome,
             "tipo": sensor.tipo,
             "valor": leitura.valor,
             "unidade": sensor.unidade,
@@ -386,36 +387,6 @@ async def post_leitura(req: LeituraCreate, db: Session = Depends(get_session)):
         }
     }
     await manager.broadcast(payload)
-    
-    # Sistema de Alertas em Tempo Real
-    alerta = None
-    if sensor.tipo == TipoSensor.TEMPERATURA:
-        t_max = get_limite("limiteTempMax", 32.0, db)
-        t_min = get_limite("limiteTempMin", 18.0, db)
-        if req.valor > t_max or req.valor < t_min:
-            alerta = f"Temperatura Crítica! Valor atual: {req.valor}°C (Limites: {t_min}°C - {t_max}°C)"
-    elif sensor.tipo == TipoSensor.UMIDADE_SOLO:
-        s_min = get_limite("limiteSoloMin", 40.0, db)
-        if req.valor < s_min:
-            alerta = f"Solo Seco! Umidade crítica: {req.valor}% (Mínimo: {s_min}%)"
-    elif sensor.tipo == TipoSensor.CO2:
-        c_max = get_limite("limiteCO2Max", 800.0, db)
-        if req.valor > c_max:
-            alerta = f"Concentração de CO2 elevada! Valor atual: {req.valor} ppm (Máximo: {c_max} ppm)"
-    
-    if alerta:
-        alerta_payload = {
-            "event": "alerta",
-            "data": {
-                "sensor": sensor.nome,
-                "tipo": sensor.tipo,
-                "mensagem": alerta,
-                "nivel": "danger",
-                "data_hora": leitura.data_hora.isoformat()
-            }
-        }
-        await manager.broadcast(alerta_payload)
-
     return {"status": "success", "id_leitura": leitura.id_leitura}
 
 # ----------------- ROTAS DE HISTÓRICO (ANÁLISE DE DADOS) -----------------
@@ -454,6 +425,7 @@ def get_historico(periodo: str = "24h", sensor_tipo: Optional[TipoSensor] = None
         resposta.append({
             "id_leitura": l.id_leitura,
             "id_sensor": l.id_sensor,
+            "nome": l.sensor.nome,
             "tipo": l.sensor.tipo,
             "valor": l.valor,
             "data_hora": l.data_hora,

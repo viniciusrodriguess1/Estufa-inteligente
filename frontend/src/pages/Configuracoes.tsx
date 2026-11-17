@@ -13,8 +13,8 @@ export const Configuracoes: React.FC<ConfiguracoesProps> = ({ onRefreshAll }) =>
   
   // States para Formulários
   const [sensorNome, setSensorNome] = useState("");
-  const [sensorTipo, setSensorTipo] = useState("Temperatura");
-  const [sensorUnidade, setSensorUnidade] = useState("°C");
+  const [sensorTipo, setSensorTipo] = useState("Luminosidade");
+  const [sensorUnidade, setSensorUnidade] = useState("Lux");
   const [sensorMicroId, setSensorMicroId] = useState("");
 
   const [microNome, setMicroNome] = useState("");
@@ -287,12 +287,7 @@ export const Configuracoes: React.FC<ConfiguracoesProps> = ({ onRefreshAll }) =>
                       value={sensorTipo}
                       onChange={(e) => handleTipoChange(e.target.value)}
                     >
-                      <option value="Temperatura">Temperatura</option>
-                      <option value="UmidadeSolo">Umidade do Solo</option>
-                      <option value="UmidadeAr">Umidade do Ar</option>
-                      <option value="Luminosidade">Luminosidade</option>
-                      <option value="CO2">CO2</option>
-                      <option value="Oxigenio">Oxigênio (O2)</option>
+                      <option value="Luminosidade">Luminosidade (LDR)</option>
                     </select>
                   </div>
                   <div className="form-group">

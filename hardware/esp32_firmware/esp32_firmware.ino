@@ -9,9 +9,10 @@ const char* ssid = "NOME_DA_SUA_REDE_WIFI";
 const char* password = "SENHA_DA_SUA_REDE_WIFI";
 const char* serverUrl = "https://estufa-inteligente.onrender.com";
 
-// IDs cadastrados no Banco de Dados
-const int ID_SENSOR_LDR = 1;
-const int ID_PLANTA = 1;
+// IDs cadastrados no Banco de Dados (Apenas os 2 Sensores LDR e a Planta)
+const int ID_LDR_ESQ = 1; // Sensor LDR Esquerdo
+const int ID_LDR_DIR = 2; // Sensor LDR Direito
+const int ID_PLANTA  = 1;
 
 // Intervalo de envio para o Render (em milissegundos)
 const unsigned long intervaloEnvioAPI = 5000; // Envia a cada 5 segundos
@@ -205,11 +206,14 @@ void taskTelemetriaHTTP(void* parameter) {
         }
       }
 
-      // 1. Envia a leitura de luminosidade principal para alimentar os cards e histórico
-      int luzMedia = (ldrEsq + ldrDir) / 2;
-      String payloadLeitura = "{\"id_sensor\":" + String(ID_SENSOR_LDR) +
-                              ",\"valor\":" + String(luzMedia) + "}";
-      postRequest("leituras", payloadLeitura);
+      // 1. Envia as leituras individuais dos 2 sensores LDR (Esquerdo e Direito)
+      String payloadLdrEsq = "{\"id_sensor\":" + String(ID_LDR_ESQ) +
+                             ",\"valor\":" + String(ldrEsq) + "}";
+      postRequest("leituras", payloadLdrEsq);
+
+      String payloadLdrDir = "{\"id_sensor\":" + String(ID_LDR_DIR) +
+                             ",\"valor\":" + String(ldrDir) + "}";
+      postRequest("leituras", payloadLdrDir);
 
       // 2. Envia o pacote completo de telemetria da Planta Robótica
       // Inclui os campos padrão do banco e as variáveis exatas da interface científica PIBIC

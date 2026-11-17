@@ -30,15 +30,17 @@ export const Sensores: React.FC<SensoresProps> = ({ sensores, onRefresh }) => {
     return labels[tipo] || tipo;
   };
 
-  // Filtrar sensores
-  const filteredSensores = sensores.filter(sensor => {
-    const matchesSearch = sensor.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          sensor.tipo.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTipo = filterTipo === "" || sensor.tipo === filterTipo;
-    const matchesStatus = filterStatus === "" || sensor.status === filterStatus;
-    
-    return matchesSearch && matchesTipo && matchesStatus;
-  });
+  // Filtrar apenas sensores LDR (Luminosidade)
+  const filteredSensores = sensores
+    .filter(sensor => sensor.tipo === "Luminosidade")
+    .filter(sensor => {
+      const matchesSearch = sensor.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            sensor.tipo.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTipo = filterTipo === "" || sensor.tipo === filterTipo;
+      const matchesStatus = filterStatus === "" || sensor.status === filterStatus;
+      
+      return matchesSearch && matchesTipo && matchesStatus;
+    });
 
   return (
     <div className="sensores-page animate-fade-in">
@@ -64,13 +66,8 @@ export const Sensores: React.FC<SensoresProps> = ({ sensores, onRefresh }) => {
                 onChange={(e) => setFilterTipo(e.target.value)}
                 className="form-control filter-select"
               >
-                <option value="">Todos os Tipos</option>
-                <option value="Temperatura">Temperatura</option>
-                <option value="UmidadeSolo">Umidade do Solo</option>
-                <option value="UmidadeAr">Umidade do Ar</option>
-                <option value="Luminosidade">Luminosidade</option>
-                <option value="CO2">CO2</option>
-                <option value="Oxigenio">Oxigênio (O2)</option>
+                <option value="">Todos os Sensores LDR</option>
+                <option value="Luminosidade">Luminosidade (LDR)</option>
               </select>
             </div>
 
