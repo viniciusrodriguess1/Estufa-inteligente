@@ -362,6 +362,12 @@ def list_sensores(tipo: Optional[TipoSensor] = None, status: Optional[StatusSens
 async def post_leitura(req: LeituraCreate, db: Session = Depends(get_session)):
     sensor = db.get(Sensor, req.id_sensor)
     if not sensor:
+        try:
+            seed_db()
+        except Exception:
+            pass
+        sensor = db.get(Sensor, req.id_sensor)
+    if not sensor:
         # Auto-provisiona o sensor LDR (ID 1 = Esquerdo, ID 2 = Direito) para nunca retornar 404
         micro = db.exec(select(Microcontrolador)).first()
         id_micro = micro.id_microcontrolador if micro else 1

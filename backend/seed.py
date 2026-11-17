@@ -11,177 +11,131 @@ from auth import get_password_hash
 
 
 def garantir_apenas_dois_ldrs(session: Session, id_microcontrolador: int):
-    """Remove sensores antigos (Temp, Umidade, CO2, O2) e garante apenas LDR Esquerdo e LDR Direito."""
-    sensores_nao_ldr = session.exec(
-        select(Sensor).where(Sensor.tipo != TipoSensor.LUMINOSIDADE)
-    ).all()
-
-    for s in sensores_nao_ldr:
-        session.exec(delete(Leitura).where(Leitura.id_sensor == s.id_sensor))
-        session.delete(s)
+    """Garante que existam exatamente os sensores ID=1 (LDR Esquerdo) e ID=2 (LDR Direito)."""
+    # Remove qualquer sensor cujo ID não seja 1 ou 2, ou cujo tipo não seja Luminosidade
+    todos_sensores = session.exec(select(Sensor)).all()
+    for s in todos_sensores:
+        if s.id_sensor not in (1, 2) or s.tipo != TipoSensor.LUMINOSIDADE:
+            session.exec(delete(Leitura).where(Leitura.id_sensor == s.id_sensor))
+            session.delete(s)
     session.commit()
 
-    sensores_ldr = session.exec(
-        select(Sensor)
-        .where(Sensor.tipo == TipoSensor.LUMINOSIDADE)
-        .order_by(Sensor.id_sensor.asc())
-    ).all()
+    config_ldrs = [
+        (1, "Sensor LDR Esquerdo"),
+        (2, "Sensor LDR Direito"),
+    ]
 
-    nomes_desejados = ["Sensor LDR Esquerdo", "Sensor LDR Direito"]
-
-    # Se houver mais de 2 LDRs, remove os excedentes
-    if len(sensores_ldr) > 2:
-        for s_extra in sensores_ldr[2:]:
-            session.exec(delete(Leitura).where(Leitura.id_sensor == s_extra.id_sensor))
-            session.delete(s_extra)
-        session.commit()
-        sensores_ldr = sensores_ldr[:2]
-
-    # Atualiza os nomes dos existentes
-    for idx, s in enumerate(sensores_ldr):
-        if s.nome != nomes_desejados[idx]:
-            s.nome = nomes_desejados[idx]
-            s.unidade = "Lux"
-            s.status = StatusSensor.ATIVO
-            session.add(s)
-    session.commit()
-
-    # Cria os que faltarem até completar 2 sensores LDR (forçando IDs 1 e 2)
-    while len(sensores_ldr) < 2:
-        idx_alvo = len(sensores_ldr)
-        id_desejado = idx_alvo + 1
-        novo_nome = nomes_desejados[idx_alvo]
-        existente_id = session.get(Sensor, id_desejado)
-        if existente_id:
-            existente_id.nome = novo_nome
-            existente_id.tipo = TipoSensor.LUMINOSIDADE
-            existente_id.unidade = "Lux"
-            existente_id.status = StatusSensor.ATIVO
-            session.add(existente_id)
-            session.commit()
-            session.refresh(existente_id)
-            sensores_ldr.append(existente_id)
+    sensores_finais = []
+    for id_alvo, nome_alvo in config_ldrs:
+        sensor = session.get(Sensor, id_alvo)
+        if sensor:
+            sensor.nome = nome_alvo
+            sensor.tipo = TipoSensor.LUMINOSIDADE
+            sensor.unidade = "Lux"
+            sensor.status = StatusSensor.ATIVO
+            sensor.id_microcontrolador = id_microcontrolador
+            session.add(sensor)
         else:
-            novo_sensor = Sensor(
-                id_sensor=id_desejado,
-                nome=novo_nome,
+            sensor = Sensor(
+                id_sensor=id_alvo,
+                nome=nome_alvo,
                 tipo=TipoSensor.LUMINOSIDADE,
                 unidade="Lux",
                 status=StatusSensor.ATIVO,
                 id_microcontrolador=id_microcontrolador,
             )
-            session.add(novo_sensor)
-            session.commit()
-            session.refresh(novo_sensor)
-            sensores_ldr.append(novo_sensor)
+            session.add(sensor)
+        session.commit()
+        session.refresh(sensor)
+        sensores_finais.append(sensor)
 
-    return sensores_ldr
+    return sensores_finais
 
 
 def seed_db():
     create_db_and_tables()
 
     with Session(engine) as session:
-        existing_estufa = session.exec(select(Estufa)).first()
-        if existing_estufa:
-            micro = session.exec(select(Microcontrolador)).first()
-            if micro:
-                garantir_apenas_dois_ldrs(session, micro.id_microcontrolador)
-            print("Banco de dados atualizado para manter apenas os 2 sensores LDR.")
-            return
+        # 1. Garantir Usuário Admin
+        admin = session.exec(
+            select(Usuario).where(Usuario.email == "admin@estufa.edu.br")
+        ).first()
+        if not admin:
+            admin = Usuario(
+                nome="Administrador Geral",
+                matricula="2026123456",
+                email="admin@estufa.edu.br",
+                senha=get_password_hash("admin123"),
+            )
+            session.add(admin)
+            session.commit()
 
-        print("Iniciando semeadura do banco de dados (Apenas 2 Sensores LDR)...")
+        # 2. Garantir Estufa
+        estufa = session.exec(select(Estufa)).first()
+        if not estufa:
+            estufa = Estufa(
+                id_estufa=1,
+                nome="Estufa Inteligente",
+                localizacao="Laboratorio Evante",
+                descricao="Estufa experimental integrando sensores de luminosidade (LDRs) e planta robótica biomimética para demonstração de fototropismo e heliotropismo via ESP32.",
+            )
+            session.add(estufa)
+            session.commit()
+            session.refresh(estufa)
 
-        # 1. Criar Usuário Admin
-        admin = Usuario(
-            nome="Administrador Geral",
-            matricula="2026123456",
-            email="admin@estufa.edu.br",
-            senha=get_password_hash("admin123")
-        )
-        session.add(admin)
+        # 3. Garantir Microcontrolador (ESP32)
+        esp32 = session.exec(select(Microcontrolador)).first()
+        if not esp32:
+            esp32 = Microcontrolador(
+                id_microcontrolador=1,
+                nome="ESP32-Estufa-01",
+                ip="192.168.1.150",
+                status=StatusMicrocontrolador.ONLINE,
+                id_estufa=estufa.id_estufa,
+            )
+            session.add(esp32)
+            session.commit()
+            session.refresh(esp32)
 
-        # 2. Criar Estufa
-        estufa = Estufa(
-            nome="Estufa Inteligente",
-            localizacao="Laboratorio Evante",
-            descricao="Estufa experimental integrando sensores de luminosidade (LDRs) e planta robótica biomimética para demonstração de fototropismo e heliotropismo via ESP32."
-        )
-        session.add(estufa)
-        session.commit()
-        session.refresh(estufa)
-
-        # 3. Criar Microcontrolador (ESP32)
-        esp32 = Microcontrolador(
-            nome="ESP32-Estufa-01",
-            ip="192.168.1.150",
-            status=StatusMicrocontrolador.ONLINE,
-            id_estufa=estufa.id_estufa
-        )
-        session.add(esp32)
-        session.commit()
-        session.refresh(esp32)
-
-        # 4. Criar Apenas os 2 Sensores LDR
+        # 4. Garantir os 2 Sensores LDR com ID=1 e ID=2
         sensores = garantir_apenas_dois_ldrs(session, esp32.id_microcontrolador)
 
-        # 5. Criar Planta Robótica
-        planta = PlantaRobotica(
-            nome="Mimosa Biomimética v1",
-            angulo_horizontal=90.0,
-            angulo_vertical=0.0,
-            status=StatusPlanta.ATIVA,
-            id_estufa=estufa.id_estufa
-        )
-        session.add(planta)
-        session.commit()
-        session.refresh(planta)
-
-        # 6. Gerar Leituras Históricas (Últimas 24 Horas) para os 2 LDRs
-        agora = datetime.utcnow()
-        leituras_a_inserir = []
-
-        for hora_atras in range(24, -1, -1):
-            data_leitura = agora - timedelta(hours=hora_atras)
-            hora = data_leitura.hour
-            dia_fator = 1.0 if 6 <= hora <= 18 else 0.15
-
-            for idx, sensor in enumerate(sensores):
-                base = 1200 if idx == 0 else 1100
-                valor = round(max(0.0, base * dia_fator + random.uniform(-120, 120) * dia_fator), 1)
-                leitura = Leitura(
-                    id_sensor=sensor.id_sensor,
-                    valor=valor,
-                    data_hora=data_leitura
-                )
-                leituras_a_inserir.append(leitura)
-
-        session.add_all(leituras_a_inserir)
-
-        # 7. Gerar Histórico de Movimento da Planta (Últimas 24 Horas)
-        movimentos_a_inserir = []
-        direcoes = ["Esquerda (140°)", "Centro (90°)", "Direita (40°)"]
-
-        for hora_atras in range(24, -1, -2):
-            data_movimento = agora - timedelta(hours=hora_atras)
-            em_luz = data_movimento.hour in range(6, 18)
-            angulo_h = random.choice([40.0, 90.0, 140.0]) if em_luz else 90.0
-            angulo_v = 40960.0 if em_luz else 0.0
-            direcao = random.choice(direcoes) if em_luz else "Em Repouso"
-
-            movimento = MovimentoPlanta(
-                id_planta=planta.id_planta,
-                angulo_horizontal=angulo_h,
-                angulo_vertical=angulo_v,
-                direcao_luz=direcao,
-                data_hora=data_movimento
+        # 5. Garantir Planta Robótica com ID=1
+        planta = session.get(PlantaRobotica, 1) or session.exec(select(PlantaRobotica)).first()
+        if not planta:
+            planta = PlantaRobotica(
+                id_planta=1,
+                nome="Mimosa Biomimética v1",
+                angulo_horizontal=90.0,
+                angulo_vertical=0.0,
+                status=StatusPlanta.ATIVA,
+                id_estufa=estufa.id_estufa,
             )
-            movimentos_a_inserir.append(movimento)
+            session.add(planta)
+            session.commit()
+            session.refresh(planta)
 
-        session.add_all(movimentos_a_inserir)
-        session.commit()
+        # 6. Se ainda não houver leituras, gera leituras iniciais para os 2 LDRs
+        tem_leitura = session.exec(select(Leitura).limit(1)).first()
+        if not tem_leitura:
+            agora = datetime.utcnow()
+            leituras_a_inserir = []
+            for hora_atras in range(12, -1, -1):
+                data_leitura = agora - timedelta(hours=hora_atras)
+                for idx, sensor in enumerate(sensores):
+                    base = 1200 if idx == 0 else 1100
+                    valor = round(max(0.0, base + random.uniform(-100, 100)), 1)
+                    leituras_a_inserir.append(
+                        Leitura(
+                            id_sensor=sensor.id_sensor,
+                            valor=valor,
+                            data_hora=data_leitura,
+                        )
+                    )
+            session.add_all(leituras_a_inserir)
+            session.commit()
 
-        print("Semeadura concluída com sucesso (2 sensores LDR configurados)!")
+        print("Banco de dados verificado com sucesso (Sensores LDR ID=1 e ID=2 prontos)!")
 
 
 if __name__ == "__main__":
