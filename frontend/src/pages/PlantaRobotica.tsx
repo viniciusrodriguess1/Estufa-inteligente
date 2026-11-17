@@ -146,6 +146,8 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
     100,
     Math.max(0, (posicao_haste / MAX_PASSOS_MOTOR) * 100)
   );
+  // Altura dinâmica do retângulo marrom: 126px (0%, ficando 6px acima do cilindro de 120px) até 216px (100%)
+  const alturaEmboloPx: number = Math.round(126 + percentualAltura * 0.9);
 
   // 4. Servomotor (Medidor de Ângulo e Rotação do Modelo 2D): `posicao_servo` (40° a 140°)
   const posicao_servo: number = Number(
@@ -157,9 +159,9 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
   );
   // Mapeia 40°..140° (centro 90°) para rotação do ponteiro (-50° a +50°)
   const rotacaoPonteiro = anguloServoClamped - 90;
-  // Inclinação visual e deslocamento de dentes das engrenagens (coroa do cilindro e pinhão do servo)
-  const rotacaoModelo2D = (anguloServoClamped - 90) * 0.45;
-  const deslocamentoDentesCoroa = (anguloServoClamped - 90) * 0.6;
+  // Inclinação visual e deslocamento de dentes das engrenagens engatadas
+  const rotacaoModelo2D = (anguloServoClamped - 90) * 0.4;
+  const deslocamentoDentesCoroa = (anguloServoClamped - 90) * 0.65;
   const deslocamentoDentesPinhao = -deslocamentoDentesCoroa;
 
   // Preparação de dados históricos para o gráfico científico
@@ -253,7 +255,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
                   Gêmeo Digital 2D Mecânico
                 </h2>
                 <p className="text-xs text-slate-400 font-mono">
-                  Base Vazada (Stepper) + Engrenagens (Servo) + Haste/T
+                  Girassol + Suporte T + Cilindro/Êmbolo + Engrenagens
                 </p>
               </div>
             </div>
@@ -293,7 +295,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
             <div className="mechanical-assembly">
               {/* -------------------------------------------------------------
                   CONJUNTO ROTATIVO ACIONADO PELA ENGRENAGEM DO SERVO
-                  (Cilindro Verde + Retângulo Marrom Interno + Suporte T Branco)
+                  (Cilindro Verde + Retângulo Marrom Interno + Suporte T Branco c/ Girassol)
               ------------------------------------------------------------- */}
               <div
                 className="rotating-column-group"
@@ -302,9 +304,9 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
                   transformOrigin: "bottom center",
                 }}
               >
-                {/* Curso Total de Elevação da Haste Marrom e Cabeça em T */}
+                {/* Curso de Elevação do Retângulo Marrom + Suporte em T Branco (sempre acima do cilindro) */}
                 <div className="elevation-track">
-                  {/* SUPORTE EM "T" BRANCO (COLADO NO TOPO DO RETÂNGULO MARROM) */}
+                  {/* SUPORTE EM "T" BRANCO COM GIRASSOL NO CENTRO E LDRs NAS PONTAS */}
                   <div className="t-support-white">
                     <div className="t-horizontal-bar">
                       {/* Olho Esquerdo (ldr_esquerdo) */}
@@ -322,7 +324,98 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
                         <span className="ldr-side-label">LDR ESQ</span>
                       </div>
 
-                      <span className="t-head-center-text">SUPORTE T</span>
+                      {/* GIRASSOL NO MEIO DO SUPORTE EM T */}
+                      <div
+                        className="sunflower-wrapper"
+                        title="Girassol Biomimético no centro do Suporte em T"
+                      >
+                        <svg
+                          viewBox="0 0 64 64"
+                          width="46"
+                          height="46"
+                          className="sunflower-svg"
+                        >
+                          {/* Pétalas amarelas/douradas ao redor da corola */}
+                          <g fill="#facc15" stroke="#eab308" strokeWidth="1.2">
+                            <ellipse cx="32" cy="8" rx="4.5" ry="9" />
+                            <ellipse cx="32" cy="56" rx="4.5" ry="9" />
+                            <ellipse cx="8" cy="32" rx="9" ry="4.5" />
+                            <ellipse cx="56" cy="32" rx="9" ry="4.5" />
+                            <ellipse
+                              cx="32"
+                              cy="8"
+                              rx="4.5"
+                              ry="9"
+                              transform="rotate(30 32 32)"
+                            />
+                            <ellipse
+                              cx="32"
+                              cy="8"
+                              rx="4.5"
+                              ry="9"
+                              transform="rotate(60 32 32)"
+                            />
+                            <ellipse
+                              cx="32"
+                              cy="8"
+                              rx="4.5"
+                              ry="9"
+                              transform="rotate(120 32 32)"
+                            />
+                            <ellipse
+                              cx="32"
+                              cy="8"
+                              rx="4.5"
+                              ry="9"
+                              transform="rotate(150 32 32)"
+                            />
+                            <ellipse
+                              cx="32"
+                              cy="8"
+                              rx="4.5"
+                              ry="9"
+                              transform="rotate(210 32 32)"
+                            />
+                            <ellipse
+                              cx="32"
+                              cy="8"
+                              rx="4.5"
+                              ry="9"
+                              transform="rotate(240 32 32)"
+                            />
+                            <ellipse
+                              cx="32"
+                              cy="8"
+                              rx="4.5"
+                              ry="9"
+                              transform="rotate(300 32 32)"
+                            />
+                            <ellipse
+                              cx="32"
+                              cy="8"
+                              rx="4.5"
+                              ry="9"
+                              transform="rotate(330 32 32)"
+                            />
+                          </g>
+                          {/* Miolo marrom escuro do girassol com sementes */}
+                          <circle
+                            cx="32"
+                            cy="32"
+                            r="14"
+                            fill="#451a03"
+                            stroke="#78350f"
+                            strokeWidth="2.5"
+                          />
+                          <circle cx="28" cy="28" r="1.4" fill="#d97706" />
+                          <circle cx="36" cy="28" r="1.4" fill="#d97706" />
+                          <circle cx="32" cy="32" r="1.4" fill="#fbbf24" />
+                          <circle cx="27" cy="35" r="1.4" fill="#d97706" />
+                          <circle cx="37" cy="35" r="1.4" fill="#d97706" />
+                          <circle cx="32" cy="25" r="1.2" fill="#fbbf24" />
+                          <circle cx="32" cy="38" r="1.2" fill="#fbbf24" />
+                        </svg>
+                      </div>
 
                       {/* Olho Direito (ldr_direito) */}
                       <div className="ldr-eye-box">
@@ -339,22 +432,22 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
                         <span className="ldr-side-label">LDR DIR</span>
                       </div>
                     </div>
-                    {/* Haste Vertical do T Branco colada no Retângulo Marrom */}
+                    {/* Haste Vertical do T Branco colada no topo do Retângulo Marrom */}
                     <div className="t-vertical-stem" />
                   </div>
 
-                  {/* RETÂNGULO MARROM INTERNO (ACOPLADO À ROSCA DE SUBIDA E DESCIDA) */}
+                  {/* RETÂNGULO MARROM INTERNO (Mínimo de 126px para ficar sempre acima do cilindro verde de 120px) */}
                   <div
                     className="inner-brown-plunger"
                     style={{
-                      height: `${28 + (percentualAltura * 0.72)}%`,
+                      height: `${alturaEmboloPx}px`,
                     }}
                   >
-                    <span className="plunger-label">ÊMBOLO</span>
+                    <span className="plunger-label">HASTE MARROM</span>
                   </div>
                 </div>
 
-                {/* CILINDRO VERDE EXTERNO (COM CORTE PARCIAL MOSTRANDO O RETÂNGULO MARROM E A ROSCA) */}
+                {/* CILINDRO VERDE EXTERNO (120px de altura, deixando o Suporte em T sempre acima dele) */}
                 <div className="outer-green-cylinder">
                   {/* Rosca Sem-Fim Vertical atravessando o cilindro desde o Motor de Passo */}
                   <div className="vertical-leadscrew" />
@@ -375,12 +468,12 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
 
               {/* -------------------------------------------------------------
                   CONJUNTO INFERIOR FIXO:
-                  BASE MARROM VAZADA (COM STEPPER DENTRO) + SERVO LATERAL C/ ENGRENAGEM
+                  BASE MARROM VAZADA (COM STEPPER DENTRO) + SERVO COLADO NA ENGRENAGEM
               ------------------------------------------------------------- */}
               <div className="lower-fixed-chassis">
-                {/* SERVOMOTOR LATERAL + ENGRENAGEM PINHÃO (ENGATADA NA ENGRENAGEM DO CILINDRO) */}
+                {/* SERVOMOTOR LATERAL E SUA ENGRENAGEM ENCOSTANDO NA ENGRENAGEM DO CILINDRO */}
                 <div className="side-servo-assembly">
-                  {/* Engrenagem do Servomotor (Pinhão) */}
+                  {/* Engrenagem do Servomotor (Pinhão) encostada na Engrenagem do Cilindro */}
                   <div className="servo-pinion-gear">
                     <div
                       className="gear-teeth-strip pinion-teeth"
@@ -388,15 +481,17 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
                         backgroundPositionX: `${deslocamentoDentesPinhao}px`,
                       }}
                     />
-                    <span className="pinion-caption">PINHÃO</span>
+                    <span className="pinion-caption">ENGR. SERVO</span>
                   </div>
                   {/* Eixo do Servo */}
                   <div className="servo-shaft-neck" />
-                  {/* Corpo do Servomotor SG90 Lateral */}
+                  {/* Corpo do Servomotor SG90 Lateral encostado na estrutura */}
                   <div className="servo-motor-body">
                     <span className="servo-body-title">SERVO SG90</span>
                     <span className="servo-body-angle">{posicao_servo}°</span>
                   </div>
+                  {/* Suporte lateral marrom fixando o servo na base */}
+                  <div className="servo-support-bracket" />
                 </div>
 
                 {/* A BASE MARROM VAZADA (MOSTRANDO O MOTOR DE PASSO LÁ DENTRO) */}
@@ -423,16 +518,14 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
 
           <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
             <span>
-              Êmbolo Marrom:{" "}
+              Haste Marrom:{" "}
               <strong className="text-emerald-400">
                 {percentualAltura.toFixed(1)}%
               </strong>
             </span>
             <span>
-              Transmissão Servo:{" "}
-              <strong className="text-cyan-400">
-                {posicao_servo}° ({rotacaoPonteiro > 0 ? `+${rotacaoPonteiro}` : rotacaoPonteiro}°)
-              </strong>
+              Engrenagens (Servo &harr; Cilindro):{" "}
+              <strong className="text-cyan-400">{posicao_servo}°</strong>
             </span>
           </div>
         </section>
@@ -826,14 +919,14 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
 
         /* Palco do Modelo 2D */
         .robot-stage {
-          height: 490px;
+          height: 510px;
           background-color: #060b16;
           background-image:
             linear-gradient(to right, rgba(56, 189, 248, 0.05) 1px, transparent 1px),
             linear-gradient(to bottom, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
           background-size: 28px 28px;
           box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.75);
-          padding-bottom: 14px;
+          padding-bottom: 12px;
         }
 
         .guide-line-vertical {
@@ -853,7 +946,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
           justify-content: flex-end;
           position: relative;
           width: 100%;
-          height: 400px;
+          height: 430px;
         }
 
         /* =====================================================================
@@ -861,8 +954,8 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
         ===================================================================== */
         .rotating-column-group {
           position: relative;
-          width: 210px;
-          height: 290px;
+          width: 220px;
+          height: 330px;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -871,12 +964,14 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
           z-index: 10;
         }
 
-        /* Trilha de elevação do Retângulo Marrom + Suporte em T Branco */
+        /* Trilha de elevação: parte de bottom: 22px (base do cilindro verde de 120px)
+           Como o retângulo marrom tem no mínimo 126px de altura, o Suporte em T fica
+           SEMPRE acima do topo do cilindro verde (nunca dentro dele!) */
         .elevation-track {
           position: absolute;
-          bottom: 22px; /* Parte de dentro do cilindro verde logo acima da engrenagem */
-          width: 180px;
-          height: 258px;
+          bottom: 22px;
+          width: 190px;
+          height: 300px;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -885,39 +980,47 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
           pointer-events: none;
         }
 
-        /* SUPORTE EM "T" BRANCO (Colado no topo do retângulo marrom) */
+        /* SUPORTE EM "T" BRANCO (Colado no topo do retângulo marrom, acima do cilindro) */
         .t-support-white {
           display: flex;
           flex-direction: column;
           align-items: center;
           flex-shrink: 0;
-          z-index: 15;
+          z-index: 16;
         }
 
         .t-horizontal-bar {
-          width: 158px;
-          height: 34px;
+          width: 168px;
+          height: 38px;
           background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
           border: 2px solid #cbd5e1;
-          border-radius: 9px;
+          border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 0 8px;
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+          padding: 0 9px;
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
+          position: relative;
         }
 
-        .t-head-center-text {
-          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-          font-size: 8.5px;
-          font-weight: 800;
-          color: #334155;
-          letter-spacing: 0.05em;
+        /* Girassol centralizado no meio do Suporte em T */
+        .sunflower-wrapper {
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-top: -14px;
+          filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
+          z-index: 18;
+        }
+
+        .sunflower-svg {
+          transition: transform 0.5s ease;
         }
 
         .t-vertical-stem {
-          width: 26px;
-          height: 16px;
+          width: 28px;
+          height: 14px;
           background: linear-gradient(90deg, #e2e8f0 0%, #ffffff 50%, #cbd5e1 100%);
           border-left: 2px solid #cbd5e1;
           border-right: 2px solid #cbd5e1;
@@ -932,8 +1035,8 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
         }
 
         .ldr-eye-lens {
-          width: 23px;
-          height: 23px;
+          width: 24px;
+          height: 24px;
           border-radius: 9999px;
           border-width: 2px;
           border-style: solid;
@@ -960,11 +1063,9 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
           color: #94a3b8;
         }
 
-        /* RETÂNGULO MARROM INTERNO (Dentro do cilindro verde, acoplado à rosca) */
+        /* RETÂNGULO MARROM INTERNO (Mínimo 126px > 120px do cilindro verde, ficando sempre visível acima do cilindro) */
         .inner-brown-plunger {
-          width: 28px;
-          min-height: 45px;
-          max-height: 200px;
+          width: 30px;
           background: linear-gradient(90deg, #78350f 0%, #b45309 50%, #78350f 100%);
           border: 2px solid #f59e0b;
           border-radius: 3px 3px 0 0;
@@ -984,24 +1085,24 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
           font-size: 7.5px;
           font-weight: 800;
           color: #fef3c7;
-          letter-spacing: 0.08em;
+          letter-spacing: 0.06em;
           opacity: 0.9;
         }
 
-        /* CILINDRO VERDE EXTERNO (Com visão em corte para exibir o retângulo marrom e a rosca) */
+        /* CILINDRO VERDE EXTERNO (120px de altura, visão em corte mostrando o retângulo marrom e a rosca) */
         .outer-green-cylinder {
           width: 54px;
-          height: 145px;
+          height: 120px;
           background: linear-gradient(
             90deg,
-            rgba(21, 128, 61, 0.82) 0%,
-            rgba(34, 197, 94, 0.32) 30%,
+            rgba(21, 128, 61, 0.84) 0%,
+            rgba(34, 197, 94, 0.30) 30%,
             rgba(34, 197, 94, 0.22) 70%,
-            rgba(21, 128, 61, 0.82) 100%
+            rgba(21, 128, 61, 0.84) 100%
           );
           border: 2.5px solid #22c55e;
           border-bottom: none;
-          border-radius: 8px 8px 0 0;
+          border-radius: 6px 6px 0 0;
           position: relative;
           display: flex;
           align-items: center;
@@ -1038,9 +1139,9 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
           letter-spacing: 0.06em;
         }
 
-        /* ENGRENAGEM DA BASE DO CILINDRO VERDE (COROA) */
+        /* ENGRENAGEM DA BASE DO CILINDRO VERDE (COROA: 84px de largura, borda direita em 50% + 42px) */
         .cylinder-base-gear {
-          width: 82px;
+          width: 84px;
           height: 22px;
           background: linear-gradient(180deg, #16a34a 0%, #14532d 100%);
           border: 2px solid #4ade80;
@@ -1055,7 +1156,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
         }
 
         .gear-teeth-strip {
-          width: 92%;
+          width: 94%;
           height: 8px;
           background: repeating-linear-gradient(
             90deg,
@@ -1078,23 +1179,26 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
         }
 
         /* =====================================================================
-           CHASSI INFERIOR: BASE MARROM VAZADA (C/ STEPPER) + SERVO LATERAL
+           CHASSI INFERIOR: BASE MARROM VAZADA (C/ STEPPER) + SERVO ENCOSTADO
         ===================================================================== */
         .lower-fixed-chassis {
           position: relative;
-          width: 260px;
-          height: 98px;
+          width: 280px;
+          height: 96px;
           display: flex;
           align-items: flex-start;
           justify-content: center;
           z-index: 14;
         }
 
-        /* SERVOMOTOR LATERAL + ENGRENAGEM (Engatada na engrenagem da base do cilindro) */
+        /* SERVOMOTOR LATERAL COLADO NA ENGRENAGEM DO CILINDRO:
+           A engrenagem do cilindro termina em calc(50% + 42px).
+           Posicionamos o conjunto do servo em left: calc(50% + 40px) para que
+           as duas engrenagens fiquem fisicamente encostadas/engrenadas! */
         .side-servo-assembly {
           position: absolute;
-          right: 6px;
-          top: -22px; /* Alinha a engrenagem do servo exatamente na altura da engrenagem do cilindro verde */
+          left: calc(50% + 40px);
+          top: -22px;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -1102,7 +1206,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
         }
 
         .servo-pinion-gear {
-          width: 48px;
+          width: 50px;
           height: 22px;
           background: linear-gradient(180deg, #0284c7 0%, #1e3a8a 100%);
           border: 2px solid #38bdf8;
@@ -1111,7 +1215,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          box-shadow: -3px 0 10px rgba(56, 189, 248, 0.35);
+          box-shadow: -2px 0 12px rgba(56, 189, 248, 0.45);
         }
 
         .pinion-teeth {
@@ -1134,15 +1238,15 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
 
         .servo-shaft-neck {
           width: 10px;
-          height: 12px;
+          height: 8px;
           background: linear-gradient(90deg, #94a3b8, #f8fafc, #64748b);
           border-left: 1px solid #475569;
           border-right: 1px solid #475569;
         }
 
         .servo-motor-body {
-          width: 56px;
-          height: 54px;
+          width: 54px;
+          height: 50px;
           background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 60%, #1e3a8a 100%);
           border: 2px solid #60a5fa;
           border-radius: 6px;
@@ -1151,28 +1255,38 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
           align-items: center;
           justify-content: center;
           box-shadow: 0 6px 14px rgba(0, 0, 0, 0.55);
-          padding: 4px;
+          padding: 3px;
         }
 
         .servo-body-title {
           font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-          font-size: 7.5px;
+          font-size: 7px;
           font-weight: 800;
           color: #dbeafe;
         }
 
         .servo-body-angle {
           font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-          font-size: 11px;
+          font-size: 10.5px;
           font-weight: 800;
           color: #fde047;
-          margin-top: 2px;
+          margin-top: 1px;
+        }
+
+        /* Suporte lateral marrom ligando o Servo à Base Marrom */
+        .servo-support-bracket {
+          width: 60px;
+          height: 12px;
+          background: linear-gradient(180deg, #78350f 0%, #451a03 100%);
+          border: 2px solid #b45309;
+          border-radius: 0 4px 4px 0;
+          margin-left: -6px;
         }
 
         /* BASE MARROM VAZADA (Permite ver o Motor de Passo lá dentro) */
         .hollow-brown-base {
-          width: 164px;
-          height: 96px;
+          width: 156px;
+          height: 94px;
           background: linear-gradient(180deg, #78350f 0%, #451a03 100%);
           border: 3px solid #b45309;
           border-radius: 8px;
@@ -1223,7 +1337,7 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
         /* Corpo do Motor de Passo visível dentro da Base Vazada */
         .stepper-motor-unit {
           width: 104px;
-          height: 46px;
+          height: 44px;
           background: linear-gradient(180deg, #cbd5e1 0%, #64748b 45%, #334155 100%);
           border: 2px solid #e2e8f0;
           border-radius: 8px 8px 4px 4px;
