@@ -157,10 +157,9 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
     SERVO_MAX_ANGULO,
     Math.max(SERVO_MIN_ANGULO, posicao_servo)
   );
-  // Mapeia 40°..140° (centro 90°) para rotação do ponteiro (-50° a +50°)
+  // Mapeia 40°..140° (centro 90°) para rotação do ponteiro no mostrador (-50° a +50°)
   const rotacaoPonteiro = anguloServoClamped - 90;
-  // Inclinação visual e deslocamento de dentes das engrenagens engatadas
-  const rotacaoModelo2D = (anguloServoClamped - 90) * 0.4;
+  // Deslocamento horizontal sutil nos dentes das engrenagens (sem inclinar o cilindro)
   const deslocamentoDentesCoroa = (anguloServoClamped - 90) * 0.65;
   const deslocamentoDentesPinhao = -deslocamentoDentesCoroa;
 
@@ -294,16 +293,10 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
             =============================================================== */}
             <div className="mechanical-assembly">
               {/* -------------------------------------------------------------
-                  CONJUNTO ROTATIVO ACIONADO PELA ENGRENAGEM DO SERVO
-                  (Cilindro Verde + Retângulo Marrom Interno + Suporte T Branco c/ Girassol)
+                  COLUNA VERTICAL (MANTÉM EIXO VERTICAL FIXO SEM INCLINAR)
+                  Movimenta verticalmente: Girassol -> Suporte em T -> Retângulo Marrom
               ------------------------------------------------------------- */}
-              <div
-                className="rotating-column-group"
-                style={{
-                  transform: `rotate(${rotacaoModelo2D}deg)`,
-                  transformOrigin: "bottom center",
-                }}
-              >
+              <div className="rotating-column-group">
                 {/* Curso de Elevação do Retângulo Marrom + Suporte em T Branco (sempre acima do cilindro) */}
                 <div className="elevation-track">
                   {/* SUPORTE EM "T" BRANCO COM GIRASSOL NO CENTRO E LDRs NAS PONTAS */}
@@ -562,14 +555,16 @@ export const PlantaRobotica: React.FC<PlantaRoboticaProps> = ({
 
           <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs font-mono text-slate-400">
             <span>
-              Haste Marrom:{" "}
+              Curso Vertical (Haste):{" "}
               <strong className="text-emerald-400">
-                {percentualAltura.toFixed(1)}%
+                {percentualAltura.toFixed(1)}% ({posicao_haste} passos)
               </strong>
             </span>
             <span>
-              Engrenagens (Servo &harr; Cilindro):{" "}
-              <strong className="text-cyan-400">{posicao_servo}°</strong>
+              Estado:{" "}
+              <strong className="text-cyan-400">
+                {estado === 1 ? "Subindo / Ativo" : "Retraindo / Repouso"}
+              </strong>
             </span>
           </div>
         </section>
